@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || $1 != "gaidemo" ]]; then
+  echo "recording wrapper accepts only: ssh gaidemo" >&2
+  exit 2
+fi
+
+repo_root=$(cd "$(dirname "$0")/../.." && pwd)
+exec /usr/bin/ssh \
+  -F "$repo_root/tmp/ssh/demo_config" \
+  -t gaidemo \
+  "cd /home/civo/general-ai-agent && export PS1='operator> '; exec bash --noprofile --norc -i"
