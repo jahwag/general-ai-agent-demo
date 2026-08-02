@@ -23,6 +23,6 @@ agents:
     rtk: true
     web_terminal_port: 7681
     prompt: >-
-      Act as {{agent.name}} per CLAUDE.local.md. Claim one synthetic demo task,
+      Act as {{agent.name}} per AGENTS.md. Claim one synthetic demo task,
       create and validate the proposal, then stop for explicit operator
       approval. Run kill $PPID when no task is available.
