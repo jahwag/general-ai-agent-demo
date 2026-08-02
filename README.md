@@ -11,6 +11,7 @@ audience. The implemented path is deliberately small:
 
 The demo is not a production-readiness, reliability, or KPI validation. See
 `docs/demo-script.md` for the intended recording and the claims it may make.
+The component and trust boundaries are documented in `docs/architecture.md`.
 
 ## Local commands
 
