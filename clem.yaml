@@ -1,0 +1,28 @@
+project: gaidemo
+primary_milestone: "Record one honest Freshworks human-approval capability demo"
+
+coordination:
+  backend: github
+  github_repo: "jahwag/general-ai-agent-demo"
+  channels:
+    tasks: "clem:todo"
+    alerts: "1"
+    lessons: "2"
+
+operator:
+  github_logins: ["jahwag"]
+
+agents:
+  copilot:
+    name: "Cora"
+    role: "Service Desk Copilot"
+    runtime: codex
+    effort: medium
+    iteration: 1m
+    vaults: [github]
+    rtk: true
+    web_terminal_port: 7681
+    prompt: >-
+      Act as {{agent.name}} per CLAUDE.local.md. Claim one synthetic demo task,
+      create and validate the proposal, then stop for explicit operator
+      approval. Run kill $PPID when no task is available.
