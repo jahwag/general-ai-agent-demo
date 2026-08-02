@@ -42,3 +42,33 @@ notifications, and unrelated tickets by construction. Then assemble:
 ```bash
 recording/assemble.sh
 ```
+
+## AI-led cockpit replay
+
+The v2 cut reframes the same verified run around the AI driving the work. A
+conversation-first cockpit reports intake, scoped reading, knowledge evidence,
+proposal creation, the no-write approval gate, the human approval, and the
+operator-owned write. It switches to the native Freshservice before/after
+captures and ends with a real ephemeral AgentBus conversation rendered through
+AgentBus's capability-scoped operator UI.
+
+The cockpit is explicitly a replay/prototype. It does not imply that the custom
+conversation skin was connected during the original Freshservice mutation.
+
+Generate the AgentBus evidence and record the complete v2 cut with one command:
+
+```bash
+recording/record-cockpit.sh
+```
+
+Outputs:
+
+- `artifacts/ai-driven-freshservice-demo.mp4`
+- `artifacts/agentbus-conversation.png`
+- `artifacts/agentbus-conversation-late.png`
+
+The AgentBus evidence process builds temporary binaries from the adjacent
+AgentBus source tree, uses an isolated temporary SQLite database and token set,
+binds only to loopback, and removes its runtime credentials on exit. Override
+the source checkout with `AGENTBUS_REPO`; set `SKIP_AGENTBUS_EVIDENCE=1` only
+when reusing an already-generated screenshot.

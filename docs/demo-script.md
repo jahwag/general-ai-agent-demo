@@ -33,3 +33,28 @@ production readiness, reliability, KPI impact, or a vendor recommendation.
 - Never display `.env`, process environments, auth files, API headers, cloud
   dashboards, or command history containing credentials.
 - Show elapsed progress honestly; do not imply an operator latency target.
+
+## V2: AI-led narration
+
+Use `artifacts/ai-driven-freshservice-demo.mp4` as the short visual spine and
+pause it while narrating where useful:
+
+1. **AI takes the initiative.** Cora receives the scoped ticket event, states
+   what it will do, and makes its lack of Freshservice write access explicit.
+2. **AI reports work as a conversation.** It summarizes the diagnosis, cites
+   three governed knowledge articles, and emits an immutable proposal hash.
+3. **Freshservice remains unchanged.** Switch to the native ticket before
+   approval; no private note or audit tags exist yet.
+4. **Human control is narrow and consequential.** The approval gateway refuses
+   to mutate until a human provides the exact approval for that ticket and
+   proposal. The gateway—not the model—holds the write credential.
+5. **Native proof.** Switch back to Freshservice after approval and show the
+   private note plus `ai-assisted` and `human-approved` tags.
+6. **Technical proof.** End on the real AgentBus operator conversation: Cora,
+   the approval gateway, and the human approval bridge emitted a durable reply
+   chain. Explain that Discord could be another presentation surface, while
+   AgentBus supplies delivery, retention, and audit semantics beneath it.
+
+Do not say the custom cockpit was live during the original run. Call it a
+verified-run interaction prototype backed by native Freshservice evidence and a
+real isolated AgentBus replay.
