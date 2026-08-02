@@ -49,6 +49,17 @@ reload Freshservice for the solution note and tags.
 The cockpit approval endpoint deliberately returns HTTP 410. Do not present the
 older cockpit-click prototype or an AgentBus replay as the live run.
 
+Capture the isolated live AgentBus audit chain through a one-time UI session;
+the script obtains the session over SSH without copying or printing the admin
+token:
+
+```bash
+node recording/capture-live-agentbus.mjs \
+  tmp/ssh/demo_config gaidemo \
+  artifacts/live-demo/agentbus-live-full.png \
+  artifacts/live-demo/agentbus-live-late.png
+```
+
 ```bash
 ffmpeg -f x11grab -framerate 30 -video_size 1440x900 \
   -i :1.0+100,100 -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p \

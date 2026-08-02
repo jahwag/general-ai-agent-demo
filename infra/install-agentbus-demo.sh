@@ -19,6 +19,10 @@ operator_user=gaidemo-operator
 human_user=gaidemo-human
 approver_user=gaidemo-approver
 bus_user=gaidemo-agentbus
+proposal_group=gaidemo-proposals
+proposal_root="/home/$agent_user/gaidemo"
+proposal_dir="$proposal_root/artifacts"
+proposal_path="$proposal_dir/proposal.json"
 
 for binary in agentbus agentbusd; do
   if [[ ! -x $bin_dir/$binary ]]; then
@@ -38,6 +42,20 @@ if ! id "$human_user" >/dev/null 2>&1; then
     --shell /usr/sbin/nologin --gid "$human_user" "$human_user"
 fi
 usermod --append --groups gaidemo-readers "$human_user"
+getent group "$proposal_group" >/dev/null || groupadd --system "$proposal_group"
+usermod --append --groups "$proposal_group" "$agent_user"
+usermod --append --groups "$proposal_group" "$operator_user"
+if [[ ! -d $proposal_root ]]; then
+  echo "missing Clem project directory $proposal_root" >&2
+  exit 2
+fi
+chgrp "$proposal_group" "/home/$agent_user" "$proposal_root"
+chmod 0710 "/home/$agent_user" "$proposal_root"
+install -d -m 2710 -o "$agent_user" -g "$proposal_group" "$proposal_dir"
+if [[ -f $proposal_path ]]; then
+  chgrp "$proposal_group" "$proposal_path"
+  chmod 0640 "$proposal_path"
+fi
 getent group "$approver_user" >/dev/null || groupadd --system "$approver_user"
 if ! id "$approver_user" >/dev/null 2>&1; then
   useradd --system --home-dir /var/lib/gaidemo-approver --create-home \
@@ -116,7 +134,7 @@ printf '%s\n' \
   'AGENTBUS_GATEWAY_TOKEN_FILE=/var/lib/gaidemo-operator/agentbus-gateway.token' \
   "DEMO_TICKET_ID=$ticket_id" \
   "DEMO_OPERATOR_ID=$operator_id" \
-  'GAIDEMO_PROPOSAL_PATH=/home/gaidemo-copilot/gaidemo/artifacts/proposal.json' \
+  "GAIDEMO_PROPOSAL_PATH=$proposal_path" \
   'GAIDEMO_APPROVAL_STATE_DIR=/var/lib/gaidemo-approval' \
   >"$config_tmp"
 install -m 0640 -o root -g gaidemo-operators "$config_tmp" /etc/gaidemo/agentbus.env

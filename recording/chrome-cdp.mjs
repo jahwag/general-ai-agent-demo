@@ -74,10 +74,12 @@ async function pageState(call) {
 
 async function main() {
   const [command, output] = process.argv.slice(2);
-  if (!new Set(["status", "reload", "screenshot"]).has(command)) {
-    throw new Error("usage: chrome-cdp.mjs status|reload|screenshot [OUTPUT.png]");
+  if (!new Set(["status", "reload", "screenshot", "screenshot-solution"]).has(command)) {
+    throw new Error(
+      "usage: chrome-cdp.mjs status|reload|screenshot|screenshot-solution [OUTPUT.png]",
+    );
   }
-  if (command === "screenshot" && !output) {
+  if (command.startsWith("screenshot") && !output) {
     throw new Error("screenshot requires an output path");
   }
 
@@ -113,12 +115,23 @@ async function main() {
     }
 
     const state = await pageState(call);
-    if (command === "screenshot") {
+    if (command === "screenshot" || command === "screenshot-solution") {
       if (!state.pathname.includes(demoTicketPath)) {
         throw new Error(`refusing capture outside ticket #${demoTicketId}: ${state.pathname}`);
       }
       await call("Runtime.evaluate", {
-        expression: "window.scrollTo({top: 0, behavior: 'instant'})",
+        expression:
+          command === "screenshot-solution"
+            ? `(() => {
+                const element = [...document.querySelectorAll("*")].find(
+                  (candidate) =>
+                    candidate.children.length === 0 &&
+                    candidate.textContent?.trim().startsWith("APPROVE AI "),
+                );
+                element?.scrollIntoView({block: "center", behavior: "instant"});
+                return Boolean(element);
+              })()`
+            : "window.scrollTo({top: 0, behavior: 'instant'})",
       });
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const result = await call("Page.captureScreenshot", {
