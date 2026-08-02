@@ -23,9 +23,21 @@ Run `vhs recording/terminal.tape` exactly once. Its final command performs the
 approved Freshservice mutation and the ticket's stale-update guard prevents a
 safe rehearsal from being reused after the live write.
 
-Capture only the Freshservice ticket content area for the browser clips. Hide
-the address bar, tenant URL, account menus, extensions, desktop notifications,
-and unrelated tickets. Then assemble:
+The dedicated Chrome profile exposes DevTools only on loopback port 9222. Once
+the operator has logged in and ticket #1 is visible, capture the content
+viewport—never the browser chrome or desktop—with:
+
+```bash
+node recording/chrome-cdp.mjs status
+node recording/chrome-cdp.mjs screenshot artifacts/freshworks-before.png
+recording/still-to-clip.sh artifacts/freshworks-before.png \
+  artifacts/freshworks-before.mp4 15
+```
+
+After the single approved write, reload ticket #1 and repeat with `after` in
+the filenames. The capture command refuses any page whose path is not ticket
+#1. This hides the address bar, tenant URL, account menus, extensions, desktop
+notifications, and unrelated tickets by construction. Then assemble:
 
 ```bash
 recording/assemble.sh
