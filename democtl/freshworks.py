@@ -68,7 +68,10 @@ class FreshworksClient:
             raise ValueError(f"Freshworks API request failed: {exc.reason}") from exc
 
     def get_ticket(self, ticket_id: int) -> dict[str, Any]:
-        value = self._request("GET", f"/api/v2/tickets/{ticket_id}")
+        # Freshservice omits tags from the default ticket representation even
+        # after accepting them on update. Request the expansion so reads can
+        # verify the approval audit markers written by this demo.
+        value = self._request("GET", f"/api/v2/tickets/{ticket_id}?include=tags")
         if isinstance(value, dict) and isinstance(value.get("ticket"), dict):
             value = value["ticket"]
         if not isinstance(value, dict):

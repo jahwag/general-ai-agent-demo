@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root=$(cd "$(dirname "$0")/../.." && pwd)
+browser="$repo_root/tmp/playwright/browsers/chromium-1234/chrome-linux64/chrome"
+
+if [[ ! -x $browser ]]; then
+  echo "Playwright Chromium missing; run recording browser setup" >&2
+  exit 2
+fi
+
+exec "$browser" "$@"
