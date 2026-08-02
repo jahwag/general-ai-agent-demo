@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 1 || $1 != "APPROVE" ]]; then
-  echo 'usage: sudo gaidemo-proposal-apply APPROVE' >&2
+if [[ $# -ne 2 || $1 != "APPROVE" || -z $2 ]]; then
+  echo 'usage: gaidemo-proposal-apply APPROVE EXPECTED_UPDATED_AT' >&2
   exit 3
 fi
 
@@ -14,4 +14,5 @@ set +a
 cd /opt/general-ai-agent
 exec /opt/general-ai-agent/.venv/bin/python -I -m democtl \
   proposal apply /home/gaidemo-copilot/gaidemo/artifacts/proposal.json \
-  --approve "$1"
+  --approve "$1" \
+  --expected-updated-at "$2"

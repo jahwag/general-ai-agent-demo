@@ -2,36 +2,48 @@
 
 ```mermaid
 flowchart LR
-    FS[Freshservice\nsynthetic ticket #2]
-    RG[Read-only gateway\nscoped ticket endpoint]
-    C[Clem-managed Cora\nCodex runtime]
-    KB[Curated Markdown KB]
-    P[Validated proposal.json\nverbatim citations]
-    AB[Isolated Civo AgentBus\nloopback only]
-    UI[Live cockpit\ngaidemo-human identity]
-    H{Human operator\nexact APPROVE?}
-    W[Approval gateway\ngaidemo-operator identity]
+  FS[Freshservice\nsynthetic ticket #2]
+  RG[Read-only gateway\nscoped ticket endpoint]
+  C[Clem-managed Cora\nCodex runtime]
+  KB[Curated Markdown KB]
+  P[Validated proposal.json\nverbatim citations]
+  AB[Isolated Civo AgentBus\nloopback only]
+  UI[AgentBus observability cockpit\ngaidemo-human identity]
+  A[Native approval watcher\ngaidemo-approver identity]
+  H[Human operator\nFreshservice workspace]
+  W[Write gateway\ngaidemo-operator identity]
 
-    FS -->|official REST API| RG
-    RG -->|ticket #2 only\nUnix socket; no API key| C
-    KB -->|local search| C
-    C --> P
-    C -->|intake, research, proposal| AB
-    AB --> UI
-    P --> UI
-    UI --> H
-    H -->|reject / omit| X[No Freshservice write]
-    H -->|hash-bound APPROVE| AB
-    AB --> W
-    W -->|proposal hash + stale-ticket guard\nthen private note + tags| FS
+  FS -->|official REST API| RG
+  RG -->|ticket #2 only\nUnix socket; no API key| C
+  KB -->|local search| C
+  C --> P
+  C -->|intake, research, proposal| AB
+  AB --> UI
+  UI -->|read-only proposal projection| A
+  H -->|exact private note\nAPPROVE AI hash-prefix| FS
+  RG -->|ticket + conversations\nno API key| A
+  A -->|authenticated, hash-bound approval| AB
+  H -->|reject or omit| X[No proposal write]
+  P --> W
+  AB --> W
+  W -->|full proposal hash + post-approval stale guard\nthen solution note + tags| FS
 ```
 
 The Freshservice key is stored in `/etc/gaidemo/freshworks.env`, readable by
-the approval-gateway identity but not Cora or the cockpit identity. Cora can
-only use the ticket-scoped read gateway. The cockpit and approval gateway also
-hold separate AgentBus mailbox tokens and cannot read each other's token.
+the `gaidemo-operator` identity but not Cora, the cockpit, or the native
+approval watcher. Cora and the watcher can only use the ticket-scoped read
+gateway. The cockpit, watcher, and write gateway have distinct OS identities,
+state directories, and AgentBus mailbox tokens. The cockpit endpoint returns
+HTTP 410 for approval attempts; it is an observability surface, not the
+frontline operator interface and not AgentBus itself.
 
-This is a live capability demonstration over a synthetic scenario, not a production-readiness,
-reliability, KPI, or vendor-selection result. Clem was selected because the
-consultant already knows it well; alternatives should be evaluated separately
-against the demonstrated control and capability bar.
+The watcher accepts exactly one new private, outgoing note whose text matches
+the current proposal hash prefix and whose Freshservice `user_id` matches the
+configured operator. It rejects concurrent ticket-field changes or additional
+conversations. The write gateway then rechecks the full proposal SHA-256 and
+the ticket version produced by the approval note before mutating Freshservice.
+
+This is a live capability demonstration over a synthetic scenario, not a
+production-readiness, reliability, KPI, or vendor-selection result. Clem was
+selected because the consultant already knows it well; alternatives should be
+evaluated separately against the demonstrated control-capability bar.

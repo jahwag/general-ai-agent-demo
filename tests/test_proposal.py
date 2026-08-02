@@ -68,6 +68,28 @@ class ProposalTests(unittest.TestCase):
 
         self.assertEqual(client.calls, [("get_ticket", 1)])
 
+    def test_native_approval_version_replaces_analyzed_version_guard(self) -> None:
+        client = StubMutationClient("approval-version")
+        proposal = {
+            "ticket_id": 1,
+            "ticket_updated_at": "analyzed-version",
+            "private_note": "Synthetic note",
+            "category": "Synthetic category",
+            "evidence": [{"citation": "kb://article.md", "quote": "quote"}],
+            "tags_to_add": ["human-approved"],
+        }
+
+        result = apply_proposal(
+            client,
+            proposal,  # type: ignore[arg-type]
+            expected_updated_at="approval-version",
+        )
+
+        self.assertEqual(result["note_id"], 10)
+        self.assertEqual(client.calls[0], ("get_ticket", 1))
+        self.assertEqual(client.calls[1][0], "add_private_note")
+        self.assertEqual(client.calls[2][0], "update_ticket")
+
 
 if __name__ == "__main__":
     unittest.main()

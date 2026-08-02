@@ -67,10 +67,14 @@ def _note_html(proposal: dict[str, Any]) -> str:
 
 
 def apply_proposal(
-    client: FreshworksClient, proposal: dict[str, Any]
+    client: FreshworksClient,
+    proposal: dict[str, Any],
+    *,
+    expected_updated_at: str | None = None,
 ) -> dict[str, Any]:
     current = client.get_ticket(proposal["ticket_id"])
-    if current.get("updated_at") != proposal["ticket_updated_at"]:
+    expected = expected_updated_at or proposal["ticket_updated_at"]
+    if current.get("updated_at") != expected:
         raise ProposalError(
             "ticket changed after analysis; fetch it again before approval"
         )
@@ -84,4 +88,3 @@ def apply_proposal(
         "note_id": note.get("id"),
         "tags": updated.get("tags", merged_tags),
     }
-

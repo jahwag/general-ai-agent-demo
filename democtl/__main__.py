@@ -54,6 +54,10 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="PHRASE",
         help='must be exactly "APPROVE"; omission is always a dry run',
     )
+    proposal_apply.add_argument(
+        "--expected-updated-at",
+        help="trusted post-approval-note ticket version used by the native gateway",
+    )
     return parser
 
 
@@ -123,7 +127,13 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 3
         client = FreshworksClient(FreshworksConfig.from_environment())
-        print_json(apply_proposal(client, proposal))
+        print_json(
+            apply_proposal(
+                client,
+                proposal,
+                expected_updated_at=args.expected_updated_at,
+            )
+        )
         return 0
     except (OSError, ValueError, ProposalError) as exc:
         print_json({"error": str(exc)})

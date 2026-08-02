@@ -1,0 +1,30 @@
+[Unit]
+Description=Freshservice-native human approval bridge
+After=gaidemo-agentbus.service gaidemo-freshworks-read.service gaidemo-live-cockpit.service
+Requires=gaidemo-agentbus.service gaidemo-freshworks-read.service
+
+[Service]
+Type=simple
+User=gaidemo-approver
+Group=gaidemo-approver
+SupplementaryGroups=gaidemo-readers gaidemo-human
+EnvironmentFile=/etc/gaidemo-approver/approval.env
+ExecStart=/opt/general-ai-agent/.venv/bin/python -I -m democtl.native_approval
+Restart=on-failure
+RestartSec=2
+UMask=0007
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/var/lib/gaidemo-human
+ReadWritePaths=/var/lib/gaidemo-approver
+InaccessiblePaths=/etc/gaidemo /etc/gaidemo-human /var/lib/gaidemo-human/agentbus.token /var/lib/gaidemo-operator /var/lib/gaidemo-approval
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
