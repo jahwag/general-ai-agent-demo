@@ -11,7 +11,11 @@ class StubFreshworksClient(FreshworksClient):
 
 class StubConversationClient(FreshworksClient):
     def _request(self, method, path, body=None):  # type: ignore[no-untyped-def]
-        return {"conversations": [{"id": 99, "private": True}]}
+        return {
+            "conversations": [
+                {"id": 99, "user_id": 60000287482, "private": True}
+            ]
+        }
 
 
 class StubTicketClient(FreshworksClient):
@@ -55,7 +59,10 @@ class FreshworksClientTests(unittest.TestCase):
 
         conversations = client.get_conversations(1)
 
-        self.assertEqual(conversations, [{"id": 99, "private": True}])
+        self.assertEqual(
+            conversations,
+            [{"id": 99, "user_id": 60000287482, "private": True}],
+        )
 
     def test_freshservice_ticket_wrapper_is_normalized(self) -> None:
         client = StubTicketClient(

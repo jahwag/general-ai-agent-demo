@@ -5,17 +5,19 @@ if [[ $EUID -ne 0 ]]; then
   echo 'install-agentbus-demo.sh must run as root' >&2
   exit 1
 fi
-if [[ $# -ne 2 || ! $2 =~ ^[1-9][0-9]*$ ]]; then
-  echo 'usage: install-agentbus-demo.sh AGENTBUS_BIN_DIR TICKET_ID' >&2
+if [[ $# -ne 3 || ! $2 =~ ^[1-9][0-9]*$ || ! $3 =~ ^[1-9][0-9]*$ ]]; then
+  echo 'usage: install-agentbus-demo.sh AGENTBUS_BIN_DIR TICKET_ID OPERATOR_ID' >&2
   exit 2
 fi
 
 bin_dir=$1
 ticket_id=$2
+operator_id=$3
 app_root=/opt/general-ai-agent
 agent_user=gaidemo-copilot
 operator_user=gaidemo-operator
 human_user=gaidemo-human
+approver_user=gaidemo-approver
 bus_user=gaidemo-agentbus
 
 for binary in agentbus agentbusd; do
@@ -35,13 +37,22 @@ if ! id "$human_user" >/dev/null 2>&1; then
   useradd --system --home-dir /var/lib/gaidemo-human --create-home \
     --shell /usr/sbin/nologin --gid "$human_user" "$human_user"
 fi
+usermod --append --groups gaidemo-readers "$human_user"
+getent group "$approver_user" >/dev/null || groupadd --system "$approver_user"
+if ! id "$approver_user" >/dev/null 2>&1; then
+  useradd --system --home-dir /var/lib/gaidemo-approver --create-home \
+    --shell /usr/sbin/nologin --gid "$approver_user" "$approver_user"
+fi
+usermod --append --groups "gaidemo-readers,$human_user" "$approver_user"
 install -d -m 0750 -o "$bus_user" -g "$bus_user" /var/lib/gaidemo-agentbus
 install -d -m 0750 -o "$operator_user" -g gaidemo-operators /var/lib/gaidemo-approval
 install -d -m 0750 -o "$operator_user" -g gaidemo-operators /var/lib/gaidemo-operator
 install -d -m 0750 -o "$human_user" -g "$human_user" /var/lib/gaidemo-human
+install -d -m 0750 -o "$approver_user" -g "$approver_user" /var/lib/gaidemo-approver
 install -d -m 0700 -o "$agent_user" -g "$agent_user" "/home/$agent_user/.config/agentbus"
 install -d -m 0750 -o root -g gaidemo-operators /etc/gaidemo
 install -d -m 0750 -o root -g "$human_user" /etc/gaidemo-human
+install -d -m 0750 -o root -g "$approver_user" /etc/gaidemo-approver
 install -d -m 0750 -o root -g "$bus_user" /etc/gaidemo-agentbus
 
 if [[ ! -s /etc/gaidemo-agentbus/admin.token ]]; then
@@ -56,6 +67,7 @@ install -m 0755 -o root -g root \
 for service in \
   gaidemo-agentbus.service \
   gaidemo-live-cockpit.service \
+  gaidemo-freshservice-approval.service \
   gaidemo-agentbus-approval.service; do
   install -m 0644 -o root -g root \
     "$app_root/infra/systemd/$service" "/etc/systemd/system/$service"
@@ -94,12 +106,16 @@ mint_if_missing approval-gateway /var/lib/gaidemo-operator/agentbus-gateway.toke
   "$operator_user" gaidemo-operators
 mint_if_missing human-approval-bridge /var/lib/gaidemo-human/agentbus.token \
   "$human_user" "$human_user"
+mint_if_missing freshservice-approval-bridge \
+  /var/lib/gaidemo-approver/agentbus.token \
+  "$approver_user" "$approver_user"
 
 config_tmp=$runtime/approval.env
 printf '%s\n' \
   'AGENTBUS_SERVER=http://127.0.0.1:7777' \
   'AGENTBUS_GATEWAY_TOKEN_FILE=/var/lib/gaidemo-operator/agentbus-gateway.token' \
   "DEMO_TICKET_ID=$ticket_id" \
+  "DEMO_OPERATOR_ID=$operator_id" \
   'GAIDEMO_PROPOSAL_PATH=/home/gaidemo-copilot/gaidemo/artifacts/proposal.json' \
   'GAIDEMO_APPROVAL_STATE_DIR=/var/lib/gaidemo-approval' \
   >"$config_tmp"
@@ -110,9 +126,22 @@ printf '%s\n' \
   'AGENTBUS_SERVER=http://127.0.0.1:7777' \
   'AGENTBUS_HUMAN_TOKEN_FILE=/var/lib/gaidemo-human/agentbus.token' \
   "DEMO_TICKET_ID=$ticket_id" \
+  'GAIDEMO_HUMAN_STATE_DIR=/var/lib/gaidemo-human' \
   'GAIDEMO_COCKPIT_HTML=/opt/general-ai-agent/democtl/live_cockpit.html' \
   >"$config_tmp"
 install -m 0640 -o root -g "$human_user" "$config_tmp" /etc/gaidemo-human/cockpit.env
+
+config_tmp=$runtime/native-approval.env
+printf '%s\n' \
+  'AGENTBUS_SERVER=http://127.0.0.1:7777' \
+  'AGENTBUS_NATIVE_APPROVAL_TOKEN_FILE=/var/lib/gaidemo-approver/agentbus.token' \
+  "DEMO_TICKET_ID=$ticket_id" \
+  "DEMO_OPERATOR_ID=$operator_id" \
+  'GAIDEMO_PROPOSAL_DESCRIPTOR_PATH=/var/lib/gaidemo-human/current-proposal.json' \
+  'GAIDEMO_NATIVE_APPROVAL_STATE_DIR=/var/lib/gaidemo-approver' \
+  >"$config_tmp"
+install -m 0640 -o root -g "$approver_user" "$config_tmp" \
+  /etc/gaidemo-approver/approval.env
 
 if grep -q '^DEMO_TICKET_ID=' /etc/gaidemo/freshworks.env; then
   sed -i -E "s/^DEMO_TICKET_ID=.*/DEMO_TICKET_ID=$ticket_id/" /etc/gaidemo/freshworks.env
@@ -122,5 +151,7 @@ else
 fi
 
 systemctl restart gaidemo-freshworks-read.service
-systemctl enable gaidemo-live-cockpit.service gaidemo-agentbus-approval.service
-systemctl restart gaidemo-live-cockpit.service gaidemo-agentbus-approval.service
+systemctl enable gaidemo-live-cockpit.service gaidemo-freshservice-approval.service \
+  gaidemo-agentbus-approval.service
+systemctl restart gaidemo-live-cockpit.service gaidemo-freshservice-approval.service \
+  gaidemo-agentbus-approval.service

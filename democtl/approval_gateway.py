@@ -55,17 +55,26 @@ def process_message(
     message: dict[str, Any],
     *,
     ticket_id: int,
+    trusted_operator_id: int,
     proposal_path: Path,
     state_dir: Path,
 ) -> bool:
     data = message.get("data")
-    if message.get("from") != "human-approval-bridge" or not isinstance(data, dict):
+    if (
+        message.get("from") != "freshservice-approval-bridge"
+        or not isinstance(data, dict)
+    ):
         return True
     proposal_hash = data.get("proposal_hash")
+    expected_updated_at = data.get("ticket_updated_at")
     if (
         data.get("kind") != "human_approval"
         or data.get("phrase") != "APPROVE"
+        or data.get("source") != "freshservice_private_note"
         or data.get("ticket_id") != ticket_id
+        or data.get("operator_user_id") != trusted_operator_id
+        or not isinstance(data.get("approval_conversation_id"), int)
+        or not isinstance(expected_updated_at, str)
         or not isinstance(proposal_hash, str)
         or not HASH_RE.fullmatch(proposal_hash)
     ):
@@ -84,7 +93,11 @@ def process_message(
         result = json.loads(marker.read_text(encoding="utf-8"))
     else:
         completed = subprocess.run(
-            ["/usr/local/bin/gaidemo-proposal-apply", "APPROVE"],
+            [
+                "/usr/local/bin/gaidemo-proposal-apply",
+                "APPROVE",
+                expected_updated_at,
+            ],
             check=False,
             capture_output=True,
             text=True,
@@ -108,6 +121,7 @@ def process_message(
 
 def main() -> None:
     ticket_id = int(os.environ["DEMO_TICKET_ID"])
+    trusted_operator_id = int(os.environ["DEMO_OPERATOR_ID"])
     proposal_path = Path(os.environ["GAIDEMO_PROPOSAL_PATH"])
     state_dir = Path(os.environ["GAIDEMO_APPROVAL_STATE_DIR"])
     state_dir.mkdir(parents=True, exist_ok=True)
@@ -129,6 +143,7 @@ def main() -> None:
                         client,
                         message,
                         ticket_id=ticket_id,
+                        trusted_operator_id=trusted_operator_id,
                         proposal_path=proposal_path,
                         state_dir=state_dir,
                     ) and accepted

@@ -93,10 +93,16 @@ class FreshworksClient:
         conversations = self.get_conversations(ticket_id)
         ticket_fields = (
             "id",
+            "requester_id",
+            "responder_id",
+            "group_id",
             "subject",
             "description_text",
             "status",
             "priority",
+            "impact",
+            "urgency",
+            "source",
             "type",
             "category",
             "sub_category",
@@ -107,6 +113,7 @@ class FreshworksClient:
         )
         conversation_fields = (
             "id",
+            "user_id",
             "incoming",
             "private",
             "body_text",

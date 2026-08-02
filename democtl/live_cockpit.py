@@ -6,7 +6,6 @@ import os
 import re
 import signal
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -15,13 +14,20 @@ from .agentbus_client import AgentBusClient, AgentBusConfig, AgentBusError
 
 
 HASH_RE = re.compile(r"^[0-9a-f]{64}$")
-LOOPBACK_ORIGIN_RE = re.compile(r"^http://127\.0\.0\.1:[1-9][0-9]{0,4}$")
 
 
 class CockpitState:
-    def __init__(self, client: AgentBusClient, ticket_id: int) -> None:
+    def __init__(
+        self,
+        client: AgentBusClient,
+        ticket_id: int,
+        proposal_state_path: Path | None = None,
+    ) -> None:
         self.client = client
         self.ticket_id = ticket_id
+        self.proposal_state_path = proposal_state_path
+        if proposal_state_path is not None:
+            proposal_state_path.unlink(missing_ok=True)
         self.lock = threading.Lock()
         self.events: list[dict[str, Any]] = []
         self.proposal: dict[str, Any] | None = None
@@ -48,6 +54,8 @@ class CockpitState:
                 and data.get("ticket_id") == self.ticket_id
                 and isinstance(data.get("proposal_hash"), str)
                 and HASH_RE.fullmatch(data["proposal_hash"])
+                and isinstance(data.get("ticket_updated_at"), str)
+                and isinstance(message.get("message_id"), str)
             ):
                 self.proposal = {
                     "ticket_id": self.ticket_id,
@@ -55,7 +63,15 @@ class CockpitState:
                     "message_id": message.get("message_id"),
                     "category": data.get("category"),
                     "citations": data.get("citations", []),
+                    "ticket_updated_at": data["ticket_updated_at"],
+                    "approval_command": f"APPROVE AI {data['proposal_hash'][:12]}",
                 }
+                if self.proposal_state_path is not None:
+                    temporary = self.proposal_state_path.with_suffix(".tmp")
+                    temporary.write_text(
+                        json.dumps(self.proposal, sort_keys=True), encoding="utf-8"
+                    )
+                    os.replace(temporary, self.proposal_state_path)
 
     def snapshot(self) -> dict[str, Any]:
         with self.lock:
@@ -67,59 +83,7 @@ class CockpitState:
             }
 
     def approve(self, value: dict[str, Any]) -> dict[str, Any]:
-        with self.lock:
-            proposal = None if self.proposal is None else dict(self.proposal)
-            existing = None if self.approval is None else dict(self.approval)
-        if proposal is None:
-            raise ValueError("no live proposal is awaiting approval")
-        if value != {
-            "phrase": "APPROVE",
-            "ticket_id": proposal["ticket_id"],
-            "proposal_hash": proposal["proposal_hash"],
-        }:
-            raise ValueError("approval must exactly match the live ticket and proposal hash")
-        if existing is not None:
-            return existing
-        body = f"APPROVE ticket={proposal['ticket_id']} proposal={proposal['proposal_hash']}"
-        sent = self.client.send(
-            to="approval-gateway",
-            body=body,
-            client_message_id=(
-                f"ticket-{proposal['ticket_id']}-human-approval-"
-                f"{proposal['proposal_hash'][:12]}"
-            ),
-            data={
-                "kind": "human_approval",
-                "ticket_id": proposal["ticket_id"],
-                "proposal_hash": proposal["proposal_hash"],
-                "phrase": "APPROVE",
-            },
-            reply_to=proposal["message_id"],
-        )
-        approval = {
-            "message_id": sent["message_id"],
-            "ticket_id": proposal["ticket_id"],
-            "proposal_hash": proposal["proposal_hash"],
-            "status": "sent_to_gateway",
-        }
-        self.add_message(
-            {
-                "message_id": sent["message_id"],
-                "from": "human-approval-bridge",
-                "to": "approval-gateway",
-                "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                "body": body,
-                "data": {
-                    "kind": "human_approval",
-                    "ticket_id": proposal["ticket_id"],
-                    "proposal_hash": proposal["proposal_hash"],
-                },
-                "reply_to": proposal["message_id"],
-            }
-        )
-        with self.lock:
-            self.approval = approval
-        return approval
+        raise ValueError("approval is performed by a private note in Freshservice")
 
 
 def consume(state: CockpitState, stop: threading.Event) -> None:
@@ -165,26 +129,13 @@ def make_handler(state: CockpitState, html: bytes) -> type[BaseHTTPRequestHandle
             self._json(404, {"error": "not found"})
 
         def do_POST(self) -> None:  # noqa: N802
-            if self.path != "/api/approve":
-                self._json(404, {"error": "not found"})
+            if self.path == "/api/approve":
+                self._json(
+                    410,
+                    {"error": "approval is performed by a private note in Freshservice"},
+                )
                 return
-            try:
-                if self.headers.get_content_type() != "application/json":
-                    raise ValueError("approval requires application/json")
-                origin = self.headers.get("Origin", "")
-                if not LOOPBACK_ORIGIN_RE.fullmatch(origin):
-                    raise ValueError("approval requires the loopback cockpit origin")
-                length = int(self.headers.get("Content-Length", "0"))
-                if length < 2 or length > 4096:
-                    raise ValueError("invalid request size")
-                value = json.loads(self.rfile.read(length))
-                if not isinstance(value, dict):
-                    raise ValueError("approval body must be an object")
-                result = state.approve(value)
-            except (json.JSONDecodeError, ValueError, AgentBusError) as exc:
-                self._json(400, {"error": str(exc)})
-                return
-            self._json(200, result)
+            self._json(404, {"error": "not found"})
 
         def log_message(self, format: str, *args: object) -> None:
             return
@@ -205,7 +156,9 @@ def main() -> None:
         )
     )
     html = Path(os.environ["GAIDEMO_COCKPIT_HTML"]).read_bytes()
-    state = CockpitState(client, ticket_id)
+    state_dir = Path(os.environ["GAIDEMO_HUMAN_STATE_DIR"])
+    state_dir.mkdir(parents=True, exist_ok=True)
+    state = CockpitState(client, ticket_id, state_dir / "current-proposal.json")
     stop = threading.Event()
     consumer = threading.Thread(target=consume, args=(state, stop), daemon=True)
     consumer.start()

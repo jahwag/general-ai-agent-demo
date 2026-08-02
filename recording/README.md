@@ -1,22 +1,21 @@
 # Recording runbook
 
-The final demo is a continuous, sanitized capture of two live browser tabs,
+The final demo is one continuous, sanitized capture of two live browser tabs,
 with native before/after evidence retained separately:
 
-1. `freshworks-before.mp4`: synthetic ticket #2 before approval;
-2. the Cora cockpit backed by the isolated Civo AgentBus, including the human
-   click and approval-gateway result;
-3. `freshworks-after.mp4`: refreshed ticket showing the private note and tags.
+1. Freshservice synthetic ticket #2 before approval;
+2. the observability cockpit backed by the isolated Civo AgentBus;
+3. the human's real private approval note inside Freshservice;
+4. the gateway result in both AgentBus and Freshservice.
 
 Before recording, create the ignored `tmp/ssh/demo_config` with the Civo host,
-the `civo` user, the disposable SSH key, and the existing ignored known-hosts
-file. Keep the alias name `gaidemo`; the VHS PATH intentionally resolves
-`ssh gaidemo` through `recording/bin/ssh` so no host, IP address, or username is
-shown in the video.
+`civo` user, disposable SSH key, and ignored known-hosts file. Keep the alias
+`gaidemo`; the VHS path resolves `ssh gaidemo` through `recording/bin/ssh`, so
+the video does not show a host, IP address, or username.
 
 The dedicated Chrome profile exposes DevTools only on loopback port 9222. Once
-the operator has logged in and ticket #2 is visible, capture the content
-viewport—never the browser chrome or desktop—with:
+the operator is logged in and ticket #2 is visible, capture the content viewport
+without browser chrome or the desktop:
 
 ```bash
 node recording/chrome-cdp.mjs status
@@ -25,29 +24,30 @@ recording/still-to-clip.sh artifacts/freshworks-before.png \
   artifacts/freshworks-before.mp4 15
 ```
 
-After the single approved write, reload ticket #2 and repeat with `after` in
-the filenames. The capture command refuses any page whose path is not ticket
-#2. This hides the address bar, tenant URL, account menus, extensions, desktop
-notifications, and unrelated tickets by construction. Then assemble:
+After the single approved write, reload ticket #2 and repeat with `after` in the
+filenames. The capture command refuses any page whose path is not ticket #2.
+This hides the address bar, tenant URL, account menus, extensions, desktop
+notifications, and unrelated tickets by construction. Assemble with:
 
 ```bash
 recording/assemble.sh
 ```
 
-## Live AI-led cockpit
+## Live native-approval flow
 
-Open `http://127.0.0.1:18765/` through the dedicated SSH tunnel as the second
+Open `http://127.0.0.1:18765/` through the dedicated SSH tunnel in a second
 Chrome tab. The cockpit reports Cora's intake, scoped reading, knowledge
-evidence, proposal hash, pending human control, and the separately identified
-operator-gateway result directly from AgentBus deliveries.
+evidence, proposal hash, pending human control, authenticated approval, and
+gateway result from live AgentBus deliveries.
 
-Start the screen capture while approval is still pending. Show Freshservice,
-switch to the cockpit, let the human click `APPROVE LIVE PROPOSAL` and confirm
-the hash-bound dialog once, wait for `Operator gateway` to turn green, then
-switch back to Freshservice and reload it.
+Start screen capture while approval is pending. Show Freshservice, switch to the
+cockpit to explain the work and copy the exact `APPROVE AI <hash-prefix>` value,
+then switch back to Freshservice. The human—not automation—adds that value as a
+private note. Return to the cockpit for the watcher and gateway events, then
+reload Freshservice for the solution note and tags.
 
-The older `record-cockpit.sh` path is retained only as a prototype reference. It
-must not be presented as the live run.
+The cockpit approval endpoint deliberately returns HTTP 410. Do not present the
+older cockpit-click prototype or an AgentBus replay as the live run.
 
 ```bash
 ffmpeg -f x11grab -framerate 30 -video_size 1440x900 \
