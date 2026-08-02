@@ -68,12 +68,21 @@ class FreshworksClient:
             raise ValueError(f"Freshworks API request failed: {exc.reason}") from exc
 
     def get_ticket(self, ticket_id: int) -> dict[str, Any]:
-        return self._request("GET", f"/api/v2/tickets/{ticket_id}")
+        value = self._request("GET", f"/api/v2/tickets/{ticket_id}")
+        if isinstance(value, dict) and isinstance(value.get("ticket"), dict):
+            value = value["ticket"]
+        if not isinstance(value, dict):
+            raise ValueError("Freshworks ticket response was not an object")
+        return value
 
     def get_conversations(self, ticket_id: int) -> list[dict[str, Any]]:
         value = self._request("GET", f"/api/v2/tickets/{ticket_id}/conversations")
+        if isinstance(value, dict):
+            value = value.get("conversations")
         if not isinstance(value, list):
             raise ValueError("Freshworks conversations response was not a list")
+        if any(not isinstance(item, dict) for item in value):
+            raise ValueError("Freshworks conversations response contained an invalid item")
         return value
 
     def get_ticket_bundle(self, ticket_id: int) -> dict[str, Any]:
@@ -110,15 +119,43 @@ class FreshworksClient:
         }
 
     def create_ticket(self, body: dict[str, Any]) -> dict[str, Any]:
-        return self._request("POST", "/api/v2/tickets", body)
+        value = self._request("POST", "/api/v2/tickets", body)
+        if isinstance(value, dict) and isinstance(value.get("ticket"), dict):
+            value = value["ticket"]
+        if not isinstance(value, dict):
+            raise ValueError("Freshworks create-ticket response was not an object")
+        return value
+
+    def check_authentication(self) -> dict[str, Any]:
+        response = self._request("GET", "/api/v2/tickets?per_page=1")
+        if isinstance(response, dict):
+            tickets = response.get("tickets", [])
+        elif isinstance(response, list):
+            tickets = response
+        else:
+            tickets = []
+        return {
+            "authenticated": True,
+            "product": self.config.product,
+            "sample_count": len(tickets) if isinstance(tickets, list) else 0,
+        }
 
     def add_private_note(self, ticket_id: int, body: str) -> dict[str, Any]:
-        return self._request(
+        value = self._request(
             "POST",
             f"/api/v2/tickets/{ticket_id}/notes",
             {"body": body, "private": True},
         )
+        if isinstance(value, dict) and isinstance(value.get("conversation"), dict):
+            value = value["conversation"]
+        if not isinstance(value, dict):
+            raise ValueError("Freshworks add-note response was not an object")
+        return value
 
     def update_ticket(self, ticket_id: int, body: dict[str, Any]) -> dict[str, Any]:
-        return self._request("PUT", f"/api/v2/tickets/{ticket_id}", body)
-
+        value = self._request("PUT", f"/api/v2/tickets/{ticket_id}", body)
+        if isinstance(value, dict) and isinstance(value.get("ticket"), dict):
+            value = value["ticket"]
+        if not isinstance(value, dict):
+            raise ValueError("Freshworks update-ticket response was not an object")
+        return value

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || $1 != "CREATE SYNTHETIC TICKET" ]]; then
+  echo 'usage: sudo gaidemo-ticket-seed "CREATE SYNTHETIC TICKET"' >&2
+  exit 3
+fi
+
+set -a
+# shellcheck disable=SC1091
+source /etc/gaidemo/freshworks.env
+set +a
+
+cd /opt/general-ai-agent
+exec /opt/general-ai-agent/.venv/bin/python -I -m democtl \
+  ticket seed fixtures/tickets/replacement-phone.json --confirm "$1"
