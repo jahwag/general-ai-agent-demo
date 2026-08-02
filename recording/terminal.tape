@@ -9,7 +9,7 @@ Set MarginFill "#111827"
 Set WindowBar Colorful
 Set TypingSpeed 28ms
 Set PlaybackSpeed 1
-Env PATH "recording/bin:/usr/local/bin:/usr/bin:/bin"
+Env PATH "recording/bin:/home/jahwag/.local/bin:/usr/local/bin:/usr/bin:/bin"
 
 Type "ssh gaidemo"
 Enter
