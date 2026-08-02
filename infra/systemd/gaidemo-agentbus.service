@@ -1,0 +1,25 @@
+[Unit]
+Description=Isolated AgentBus for the Freshservice capability demo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gaidemo-agentbus
+Group=gaidemo-agentbus
+ExecStart=/usr/local/bin/agentbusd --listen 127.0.0.1:7777 --db /var/lib/gaidemo-agentbus/bus.db --admin-token-file /etc/gaidemo-agentbus/admin.token --ui=true
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/gaidemo-agentbus
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

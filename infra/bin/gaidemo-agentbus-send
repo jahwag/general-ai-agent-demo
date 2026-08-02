@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 3 || $# -gt 4 ]]; then
+  echo 'usage: gaidemo-agentbus-send CLIENT_ID BODY DATA_JSON [REPLY_TO]' >&2
+  exit 2
+fi
+
+client_id=$1
+body=$2
+data=$3
+reply_to=${4:-}
+
+if [[ ! $client_id =~ ^ticket-[1-9][0-9]*-[a-z0-9-]+$ ]]; then
+  echo 'CLIENT_ID must be ticket-N-lowercase-slug' >&2
+  exit 2
+fi
+if (( ${#body} < 1 || ${#body} > 4000 )); then
+  echo 'BODY must contain 1-4000 characters' >&2
+  exit 2
+fi
+if ! jq -e 'type == "object" and (.kind | type == "string") and (.ticket_id | type == "number")' \
+  >/dev/null <<<"$data"; then
+  echo 'DATA_JSON must be an object with string kind and numeric ticket_id' >&2
+  exit 2
+fi
+
+reply_args=()
+if [[ -n $reply_to ]]; then
+  if [[ ! $reply_to =~ ^msg_[a-z0-9]+$ ]]; then
+    echo 'REPLY_TO was not an AgentBus message ID' >&2
+    exit 2
+  fi
+  reply_args=(--reply-to "$reply_to")
+fi
+
+exec /usr/local/bin/agentbus send \
+  --server http://127.0.0.1:7777 \
+  --token-file /home/gaidemo-copilot/.config/agentbus/token \
+  --to human-approval-bridge \
+  --client-message-id "$client_id" \
+  --body "$body" \
+  --data "$data" \
+  "${reply_args[@]}"

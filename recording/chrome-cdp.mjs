@@ -4,7 +4,9 @@ import { writeFile } from "node:fs/promises";
 
 const endpoint = "http://127.0.0.1:9222";
 const tenantHost = "example.freshservice.com";
-const demoTicketUrl = `https://${tenantHost}/a/tickets/1`;
+const demoTicketId = "2";
+const demoTicketPath = `/tickets/${demoTicketId}`;
+const demoTicketUrl = `https://${tenantHost}/a${demoTicketPath}`;
 
 async function findDemoPage() {
   const targets = await fetch(`${endpoint}/json/list`).then((response) => response.json());
@@ -94,7 +96,7 @@ async function main() {
 
     if (command === "reload") {
       const initialState = await pageState(call);
-      if (initialState.pathname.includes("/tickets/1")) {
+      if (initialState.pathname.includes(demoTicketPath)) {
         await call("Page.reload", { ignoreCache: true });
       } else {
         try {
@@ -112,8 +114,8 @@ async function main() {
 
     const state = await pageState(call);
     if (command === "screenshot") {
-      if (!state.pathname.includes("/tickets/1")) {
-        throw new Error(`refusing capture outside ticket #1: ${state.pathname}`);
+      if (!state.pathname.includes(demoTicketPath)) {
+        throw new Error(`refusing capture outside ticket #${demoTicketId}: ${state.pathname}`);
       }
       await call("Runtime.evaluate", {
         expression: "window.scrollTo({top: 0, behavior: 'instant'})",

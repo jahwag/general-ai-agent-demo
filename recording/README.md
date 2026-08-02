@@ -1,10 +1,11 @@
 # Recording runbook
 
-The final demo is assembled from three sanitized clips:
+The final demo is a continuous, sanitized capture of two live browser tabs,
+with native before/after evidence retained separately:
 
-1. `freshworks-before.mp4`: synthetic ticket #1 before approval;
-2. `terminal.mp4`: live Civo/Clem proposal preview, rejected write, and one
-   explicit approved write;
+1. `freshworks-before.mp4`: synthetic ticket #2 before approval;
+2. the Cora cockpit backed by the isolated Civo AgentBus, including the human
+   click and approval-gateway result;
 3. `freshworks-after.mp4`: refreshed ticket showing the private note and tags.
 
 Before recording, create the ignored `tmp/ssh/demo_config` with the Civo host,
@@ -13,18 +14,8 @@ file. Keep the alias name `gaidemo`; the VHS PATH intentionally resolves
 `ssh gaidemo` through `recording/bin/ssh` so no host, IP address, or username is
 shown in the video.
 
-Validate the tape without executing it:
-
-```bash
-vhs validate recording/terminal.tape
-```
-
-Run `vhs recording/terminal.tape` exactly once. Its final command performs the
-approved Freshservice mutation and the ticket's stale-update guard prevents a
-safe rehearsal from being reused after the live write.
-
 The dedicated Chrome profile exposes DevTools only on loopback port 9222. Once
-the operator has logged in and ticket #1 is visible, capture the content
+the operator has logged in and ticket #2 is visible, capture the content
 viewport—never the browser chrome or desktop—with:
 
 ```bash
@@ -34,41 +25,32 @@ recording/still-to-clip.sh artifacts/freshworks-before.png \
   artifacts/freshworks-before.mp4 15
 ```
 
-After the single approved write, reload ticket #1 and repeat with `after` in
+After the single approved write, reload ticket #2 and repeat with `after` in
 the filenames. The capture command refuses any page whose path is not ticket
-#1. This hides the address bar, tenant URL, account menus, extensions, desktop
+#2. This hides the address bar, tenant URL, account menus, extensions, desktop
 notifications, and unrelated tickets by construction. Then assemble:
 
 ```bash
 recording/assemble.sh
 ```
 
-## AI-led cockpit replay
+## Live AI-led cockpit
 
-The v2 cut reframes the same verified run around the AI driving the work. A
-conversation-first cockpit reports intake, scoped reading, knowledge evidence,
-proposal creation, the no-write approval gate, the human approval, and the
-operator-owned write. It switches to the native Freshservice before/after
-captures and ends with a real ephemeral AgentBus conversation rendered through
-AgentBus's capability-scoped operator UI.
+Open `http://127.0.0.1:18765/` through the dedicated SSH tunnel as the second
+Chrome tab. The cockpit reports Cora's intake, scoped reading, knowledge
+evidence, proposal hash, pending human control, and the separately identified
+operator-gateway result directly from AgentBus deliveries.
 
-The cockpit is explicitly a replay/prototype. It does not imply that the custom
-conversation skin was connected during the original Freshservice mutation.
+Start the screen capture while approval is still pending. Show Freshservice,
+switch to the cockpit, let the human click `APPROVE LIVE PROPOSAL` and confirm
+the hash-bound dialog once, wait for `Operator gateway` to turn green, then
+switch back to Freshservice and reload it.
 
-Generate the AgentBus evidence and record the complete v2 cut with one command:
+The older `record-cockpit.sh` path is retained only as a prototype reference. It
+must not be presented as the live run.
 
 ```bash
-recording/record-cockpit.sh
+ffmpeg -f x11grab -framerate 30 -video_size 1440x900 \
+  -i :1.0+100,100 -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p \
+  artifacts/live-demo/live-approval.mp4
 ```
-
-Outputs:
-
-- `artifacts/ai-driven-freshservice-demo.mp4`
-- `artifacts/agentbus-conversation.png`
-- `artifacts/agentbus-conversation-late.png`
-
-The AgentBus evidence process builds temporary binaries from the adjacent
-AgentBus source tree, uses an isolated temporary SQLite database and token set,
-binds only to loopback, and removes its runtime credentials on exit. Override
-the source checkout with `AGENTBUS_REPO`; set `SKIP_AGENTBUS_EVIDENCE=1` only
-when reusing an already-generated screenshot.
