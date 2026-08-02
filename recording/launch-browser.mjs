@@ -18,13 +18,15 @@ const context = await chromium.launchPersistentContext(
       "--window-size=1440,900",
       "--disable-backgrounding-occluded-windows",
       "--disable-renderer-backgrounding",
+      "--disable-session-crashed-bubble",
+      "--hide-crash-restore-bubble",
     ],
   },
 );
 
 const page = context.pages()[0] ?? (await context.newPage());
 try {
-  await page.goto("https://bytelopeabhelpdesk.freshservice.com/a/tickets/1", {
+  await page.goto("https://bytelopeabhelpdesk.freshservice.com/a/tickets/2", {
     waitUntil: "domcontentloaded",
     timeout: 30000,
   });

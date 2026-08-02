@@ -5,9 +5,10 @@ audience. The implemented path is deliberately small:
 
 1. a Clem-managed Codex worker reads one Freshworks ticket;
 2. it searches a curated Markdown knowledge base;
-3. it writes a structured proposal;
-4. a human previews and explicitly approves the proposal;
-5. a deterministic operator command adds a private note and demo tag.
+3. it publishes live intake, research, and proposal events to an isolated
+   AgentBus and writes the hash-bound structured proposal;
+4. a separately identified cockpit lets a human explicitly approve it;
+5. a deterministic approval gateway adds one private note and two demo tags.
 
 The demo is not a production-readiness, reliability, or KPI validation. See
 `docs/demo-script.md` for the intended recording and the claims it may make.

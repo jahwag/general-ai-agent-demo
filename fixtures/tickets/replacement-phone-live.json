@@ -1,0 +1,11 @@
+{
+  "email": "live.demo.operator@example.invalid",
+  "subject": "LIVE DEMO: Replacement phone cannot use employee Wi-Fi or MFA",
+  "description": "Hi Service Desk, I replaced my company phone today. Email works, but employee Wi-Fi never appears and sign-in approvals still go to the returned phone. Company Portal says Setup incomplete. I restarted twice and tried the guest network. Please help before my next shift.",
+  "priority": 1,
+  "status": 2,
+  "tags": [
+    "synthetic-ai-demo",
+    "live-agentbus-demo"
+  ]
+}

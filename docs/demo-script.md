@@ -5,20 +5,22 @@ Codex/Claude Code but not responsible for implementation details.
 
 ## Claim
 
-This is a scripted capability demonstration using synthetic data. Clem was
-chosen because the consultant already knows it. The demo does not establish
-production readiness, reliability, KPI impact, or a vendor recommendation.
+This is a live capability demonstration using synthetic data. Clem was chosen
+because the consultant already knows it. The ticket read, Codex work, AgentBus
+events, human approval, gateway write, and native Freshservice result are real;
+the demo does not establish production readiness, reliability, KPI impact, or
+a vendor recommendation.
 
 ## Storyboard
 
 1. **Freshworks:** open the synthetic replacement-phone ticket and establish
    the operator problem.
-2. **Clem/Codex:** show the agent fetch the ticket, search the local knowledge
-   corpus, and produce a structured proposal with verbatim evidence.
-3. **Control:** preview the proposal; demonstrate that omission of the exact
-   approval phrase produces no write.
-4. **Approval:** enter the approval phrase as the operator and apply the private
-   note plus tags.
+2. **Live cockpit:** show Cora's AgentBus intake, grounded research, citations,
+   and hash-bound proposal.
+3. **Control:** point out that the human approval and operator gateway remain
+   pending and that Freshservice is still unchanged.
+4. **Approval:** let the human operator click once, confirm the exact ticket and
+   proposal hash, and watch the separate gateway report the applied result.
 5. **Freshworks:** refresh the ticket and show the approved note, citations,
    proposed category, and tags.
 6. **Architecture card:** explain that production would replace the Markdown
@@ -34,10 +36,9 @@ production readiness, reliability, KPI impact, or a vendor recommendation.
   dashboards, or command history containing credentials.
 - Show elapsed progress honestly; do not imply an operator latency target.
 
-## V2: AI-led narration
+## AI-led narration
 
-Use `artifacts/ai-driven-freshservice-demo.mp4` as the short visual spine and
-pause it while narrating where useful:
+Use the live cockpit and native Freshservice tabs as the visual spine:
 
 1. **AI takes the initiative.** Cora receives the scoped ticket event, states
    what it will do, and makes its lack of Freshservice write access explicit.
@@ -53,8 +54,7 @@ pause it while narrating where useful:
 6. **Technical proof.** End on the real AgentBus operator conversation: Cora,
    the approval gateway, and the human approval bridge emitted a durable reply
    chain. Explain that Discord could be another presentation surface, while
-   AgentBus supplies delivery, retention, and audit semantics beneath it.
+    AgentBus supplies delivery, retention, and audit semantics beneath it.
 
-Do not say the custom cockpit was live during the original run. Call it a
-verified-run interaction prototype backed by native Freshservice evidence and a
-real isolated AgentBus replay.
+Do not present the older cockpit prototype or AgentBus replay as the live run.
+The recorded demo must use the isolated Civo AgentBus and its live cockpit.
