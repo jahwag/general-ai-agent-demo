@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || $1 != "APPROVE" ]]; then
+  echo 'usage: sudo gaidemo-proposal-apply APPROVE' >&2
+  exit 3
+fi
+
+set -a
+# shellcheck disable=SC1091
+source /etc/gaidemo/freshworks.env
+set +a
+
+cd /opt/general-ai-agent
+exec /opt/general-ai-agent/.venv/bin/python -I -m democtl \
+  proposal apply /home/gaidemo-copilot/gaidemo/artifacts/proposal.json \
+  --approve "$1"

@@ -17,6 +17,10 @@ The demo is not a production-readiness, reliability, or KPI validation. See
 ```bash
 python -m unittest discover -s tests
 python -m democtl kb search "new phone wifi mfa"
+python -m democtl ticket auth-check
+python -m democtl ticket seed fixtures/tickets/replacement-phone.json
+python -m democtl ticket seed fixtures/tickets/replacement-phone.json \
+  --confirm "CREATE SYNTHETIC TICKET"
 python -m democtl ticket show 123
 python -m democtl proposal validate artifacts/proposal.json
 python -m democtl proposal preview artifacts/proposal.json
@@ -26,4 +30,3 @@ python -m democtl proposal apply artifacts/proposal.json --approve APPROVE
 Freshworks credentials are read from the environment. Copy `.env.example` to
 the ignored `.env`, then set the tenant URL and a demo-agent API key. Use only
 synthetic data.
-

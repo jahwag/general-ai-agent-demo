@@ -10,11 +10,15 @@ apt-get install -y --no-install-recommends \
   ca-certificates \
   curl \
   git \
+  gh \
   jq \
   nftables \
+  nodejs \
+  npm \
   pipx \
   python3 \
   python3-venv \
+  rsync \
   tmux \
   unzip \
   yq
