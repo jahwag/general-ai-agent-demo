@@ -1,0 +1,8 @@
+{
+  "email": "alex.taylor@example.invalid",
+  "subject": "New phone cannot access employee Wi-Fi or approve sign-in",
+  "description": "Hi Service Desk, I replaced my phone yesterday. The old phone was factory-reset and returned to the carrier. On the new phone I can sign in to email, but the employee Wi-Fi never appears and approval prompts still go to the retired authenticator. I installed the company portal but it says Setup incomplete. I restarted twice and tried the guest network. Can you help before my shift tomorrow?",
+  "priority": 2,
+  "status": 2,
+  "tags": ["synthetic-ai-demo"]
+}

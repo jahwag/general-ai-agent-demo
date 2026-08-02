@@ -1,0 +1,7 @@
+.env
+.serena/
+artifacts/
+tmp/
+__pycache__/
+*.pyc
+.pytest_cache/
