@@ -58,6 +58,8 @@ class LivePromptTests(unittest.TestCase):
         self.assertIn("/var/lib/gaidemo-human/agentbus.token", installer)
         self.assertIn("/var/lib/gaidemo-approver/agentbus.token", installer)
         self.assertIn("freshservice-approval-bridge", installer)
+        self.assertIn("proposal_group=gaidemo-proposals", installer)
+        self.assertIn('chmod 0640 "$proposal_path"', installer)
         self.assertNotIn("AGENTBUS_HUMAN_TOKEN_FILE=/var/lib/gaidemo-operator", installer)
 
 

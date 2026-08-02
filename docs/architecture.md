@@ -37,6 +37,11 @@ state directories, and AgentBus mailbox tokens. The cockpit endpoint returns
 HTTP 410 for approval attempts; it is an observability surface, not the
 frontline operator interface and not AgentBus itself.
 
+The worker and write gateway share only the validated proposal artifact through
+the `gaidemo-proposals` group. Parent directories are traverse-only for that
+group, the artifacts directory is setgid, and `proposal.json` is mode `0640`;
+the gateway cannot read the worker's other private state.
+
 The watcher accepts exactly one new private, outgoing note whose text matches
 the current proposal hash prefix and whose Freshservice `user_id` matches the
 configured operator. It rejects concurrent ticket-field changes or additional
