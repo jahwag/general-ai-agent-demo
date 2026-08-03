@@ -6,8 +6,11 @@ if [[ $# -ne 2 || ( $1 != "NOTE" && $1 != "APPROVE" ) || -z $2 ]]; then
   exit 2
 fi
 
+# Export the sourced values to the isolated Python child process.
+set -a
 # shellcheck source=/dev/null
 source /etc/gaidemo/freshworks.env
+set +a
 cd /opt/general-ai-agent
 
 proposal=/home/gaidemo-copilot/gaidemo/artifacts/proposal.json
