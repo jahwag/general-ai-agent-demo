@@ -3,10 +3,10 @@ primary_milestone: "Record one honest Freshworks risk-tiered autonomy demo"
 coordination:
   backend: github
   github_repo: "jahwag/general-ai-agent-demo"
-channels:
-  tasks: "clem:todo"
-  alerts: "1"
-  lessons: "2"
+  channels:
+    tasks: "clem:todo"
+    alerts: "1"
+    lessons: "2"
 operator:
   github_logins: ["jahwag"]
 agents:
