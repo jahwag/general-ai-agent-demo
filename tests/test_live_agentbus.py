@@ -76,6 +76,14 @@ class LivePromptTests(unittest.TestCase):
         self.assertNotIn('"Operator gateway"', html)
 
 
+    def test_proposal_helper_exports_freshservice_configuration(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        helper = (root / "infra/bin/gaidemo-proposal-apply").read_text()
+        self.assertIn("set -a", helper)
+        self.assertIn("source /etc/gaidemo/freshworks.env", helper)
+        self.assertIn("set +a", helper)
+
+
 class LiveCockpitTests(unittest.TestCase):
     def test_approval_endpoint_redirects_operator_to_freshservice(self) -> None:
         client = FakeClient()
