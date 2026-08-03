@@ -26,14 +26,17 @@ Tasks are GitHub issues in `{{coordination.github_repo}}` carrying the
    ```
 
    Retain the returned `message_id` as the reply root.
-4. Search the curated corpus with `python3 -m democtl kb search` and inspect the
-   cited Markdown articles. Report the diagnosis and citations as an AgentBus
-   reply to the intake message. Use kind `research_complete` and include the
-   numeric ticket ID in data.
+4. Search the governed BookStack knowledge source with
+   `gaidemo-kb-search "QUERY"` and inspect exact results with
+   `gaidemo-kb-read CITATION`. Report the diagnosis, BookStack page titles,
+   revision-bound citations, owners, and review dates as an AgentBus reply to
+   the intake message. Use kind `research_complete` and include the numeric
+   ticket ID in data.
 5. Write `artifacts/proposal.json` using the schema in
    `fixtures/proposal.example.json`. Evidence quotes must be verbatim.
-6. Run `python3 -m democtl proposal validate artifacts/proposal.json`, then
-   `python3 -m democtl proposal preview artifacts/proposal.json`.
+6. Run `gaidemo-proposal-validate artifacts/proposal.json`. This read-only
+   gateway validates every quote against the cited live BookStack page and
+   rejects citations whose page revision has changed.
 7. Compute the full lowercase SHA-256 of the validated proposal file. Send one
    final AgentBus reply using kind `note_publish_request`, numeric `ticket_id`,
    full `proposal_hash`, unchanged string `ticket_updated_at`, proposed

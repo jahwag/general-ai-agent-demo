@@ -10,6 +10,7 @@ fi
 set -a
 # shellcheck source=/dev/null
 source /etc/gaidemo/freshworks.env
+source /etc/gaidemo-knowledge/bookstack.env
 set +a
 cd /opt/general-ai-agent
 

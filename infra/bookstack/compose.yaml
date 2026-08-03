@@ -1,0 +1,52 @@
+name: gaidemo-bookstack
+
+services:
+  database:
+    image: mariadb:11.8
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: bookstackapp
+      MARIADB_USER: bookstack
+      MARIADB_PASSWORD: ${BOOKSTACK_DB_PASSWORD:?required}
+      MARIADB_ROOT_PASSWORD: ${BOOKSTACK_DB_ROOT_PASSWORD:?required}
+    volumes:
+      - bookstack_database:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+
+  bookstack:
+    image: lscr.io/linuxserver/bookstack:latest
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/Stockholm
+      APP_URL: ${BOOKSTACK_APP_URL:?required}
+      APP_KEY: ${BOOKSTACK_APP_KEY:?required}
+      DB_HOST: database
+      DB_PORT: "3306"
+      DB_USERNAME: bookstack
+      DB_PASSWORD: ${BOOKSTACK_DB_PASSWORD:?required}
+      DB_DATABASE: bookstackapp
+    ports:
+      - "127.0.0.1:6875:80"
+    volumes:
+      - bookstack_config:/config
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  bookstack_config:
+  bookstack_database:

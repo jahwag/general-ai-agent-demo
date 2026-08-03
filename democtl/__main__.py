@@ -3,9 +3,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
+from .bookstack import BookStackKnowledgeBase
 from .freshworks import FreshworksClient, FreshworksConfig
 from .knowledge import KnowledgeBase
 from .proposal import (
@@ -79,9 +81,18 @@ def print_json(value: object) -> None:
     print(json.dumps(value, indent=2, sort_keys=True))
 
 
+def configured_knowledge(args: argparse.Namespace) -> object:
+    source = os.environ.get("KNOWLEDGE_SOURCE", "markdown").strip().casefold()
+    if source == "markdown":
+        return KnowledgeBase(args.kb_dir)
+    if source == "bookstack":
+        return BookStackKnowledgeBase.from_environment()
+    raise ValueError("KNOWLEDGE_SOURCE must be markdown or bookstack")
+
+
 def main() -> int:
     args = build_parser().parse_args()
-    knowledge = KnowledgeBase(args.kb_dir)
+    knowledge = configured_knowledge(args)
     try:
         if args.command == "kb":
             print_json(knowledge.search(args.query, limit=args.limit))

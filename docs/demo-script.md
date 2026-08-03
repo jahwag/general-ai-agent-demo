@@ -1,56 +1,53 @@
 # Demo script
 
-Target length: 3–5 minutes. Audience: internal product owners familiar with
-Codex or Claude Code but not responsible for implementation details.
+Target length: 3–5 minutes. Audience: internal product owners who know what
+Codex and Claude Code are but do not need implementation-level detail.
 
 ## Claim
 
-This is a live capability demonstration using synthetic data. Clem was chosen
-because the consultant already knows it. The ticket read, Codex work, AgentBus
-events, autonomous private note, human metadata approval, guarded write, and
-Freshservice result are real.
+This is a live capability demonstration using synthetic data. The BookStack
+pages, Codex work, AgentBus events, citation validation, and Freshservice note
+are real. Clem was chosen because the consultant knows it well; the demo sets a
+control and usability bar rather than pre-deciding the customer platform.
 
 ## Sequence
 
-1. **Freshservice:** show a configured synthetic ticket with no AI guidance.
-2. **Cora:** show the read-only Clem-managed session claiming the synthetic
-   task, reading the scoped ticket, searching the curated KB, and validating a
-   hash-bound proposal.
-3. **AgentBus:** show intake, grounded research, citations, and Cora requesting
-   publication of one private note. Explain that the custom cockpit is an
-   observability view, not AgentBus and not an approval interface.
-4. **Autonomous low-risk action:** refresh Freshservice and show Cora's private
-   guidance, evidence, and recommendation already present. No human approval
-   was required because it is internal, auditable, and does not change ticket
-   fields or message the requester.
-5. **Narrow boundary:** show that the metadata tags are still pending. If the
-   demo includes approval, let the human add the exact private note shown by the
-   proposal: `APPROVE AI <12-character hash prefix>`.
-6. **Native proof:** show the watcher authenticating the Freshservice identity
-   and exact proposal, then refresh to show only the approved tags applied.
-7. **Technical proof:** show Cora, policy gateway, native approval watcher, and
-   guarded write in one real AgentBus reply chain.
-8. **Architecture card:** explain that production would replace the Markdown
-   corpus with governed retrieval, place inference behind customer controls,
-   and evaluate Clem against managed alternatives such as AgentCore.
+1. **Knowledge entering the system.** Show the BookStack runbook containing
+   three approved articles. Open one page and point out owner, status, review
+   date, revision number, and the actual operating instruction. Say:
+   “BookStack is the governed source here, not the RAG engine. Confluence can
+   replace this connector.”
+2. **Freshservice request.** Show the synthetic replacement-phone ticket with
+   no AI guidance yet.
+3. **Cora working.** Show the real Clem/Codex terminal reading the scoped
+   ticket, issuing BookStack searches, reading exact pages, and constructing a
+   proposal with verbatim `bookstack://...@revision-N` evidence.
+4. **Auditable coordination.** Show the actual AgentBus UI with Cora's intake,
+   research result, cited page titles/revisions, and private-note publication
+   request. Do not show the custom cockpit in the main cut.
+5. **Assistance where the operator works.** Refresh Freshservice and show
+   Cora's private note, the linked BookStack titles and revisions, the quoted
+   evidence, recommendation, and proposal hash. No separate approval screen was
+   required for this low-risk internal note.
+6. **Optional control boundary.** Explain or demonstrate that metadata tags
+   remain pending until a human adds `APPROVE AI <hash-prefix>` as a private
+   Freshservice note. Public replies and consequential field changes remain out
+   of scope.
 
 ## Message to land
 
-- Human oversight is risk-tiered, not a blanket approval dialog.
-- The operator gets useful assistance in the Freshservice workspace they
-  already use.
-- Cora never receives the Freshservice credential.
-- Public replies and ticket-field changes are outside autonomous scope.
-- AgentBus supplies authenticated senders, delivery, idempotency, and an audit
-  chain beneath the presentation surface.
+- Knowledge has an owner and lifecycle; retrieval is not a mysterious upload
+  into a model.
+- The agent cites exact, current source revisions and fails closed when a page
+  changes.
+- Human oversight is risk-tiered and occurs in Freshservice, the operator's
+  existing workspace.
+- Cora receives neither Freshservice nor BookStack credentials.
+- AgentBus provides a real cross-agent audit trail; the UI shown is AgentBus's
+  own UI.
+- The next increment is an agent-proposed BookStack or Confluence draft that a
+  knowledge owner reviews and publishes.
 
-## Recording safety
-
-- Record only the synthetic tenant and ticket; crop terminals.
-- Hide URLs, IPs, account menus, browser extensions, notifications, and shell
-  prompts containing host or user names.
-- Never display `.env`, process environments, auth files, API keys, mailbox
-  tokens, SSH keys, or browser cookies.
-- Do not automate the human's optional Freshservice metadata-approval note.
-- Do not present the older cockpit-click prototype or replayed events as a live
-  run.
+Never record `.env` files, API keys, mailbox tokens, SSH hosts, browser cookies,
+account settings, notifications, or non-synthetic tickets. Do not automate the
+human's optional metadata approval.

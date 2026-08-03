@@ -2,63 +2,59 @@
 
 ```mermaid
 flowchart LR
-    FS[Freshservice\nconfigured synthetic ticket]
-    RG[Read-only gateway\nscoped ticket endpoint]
-    C[Clem-managed Cora\nCodex runtime]
-    KB[Curated Markdown KB]
-    P[Validated proposal.json\nverbatim citations]
-    AB[Isolated Civo AgentBus\nloopback only]
-    G[Policy gateway\ngaidemo-operator identity]
-    UI[AgentBus observability cockpit\ngaidemo-human identity]
-    A[Native approval watcher\ngaidemo-approver identity]
-    H[Human operator\nFreshservice workspace]
-
-    FS -->|official REST API| RG
-    RG -->|ticket only; Unix socket; no API key| C
-    KB -->|local search| C
-    C --> P
-    C -->|intake and research| AB
-    C -->|note_publish_request| AB
-    P --> G
+    O[Knowledge owner] -->|edit and publish| BS[BookStack\ngoverned source of truth]
+    BS -->|restricted API token| KG[Read-only knowledge gateway]
+    FS[Freshservice\nsynthetic ticket] -->|official REST API| RG[Ticket-scoped read gateway]
+    KG -->|search, page, owner, review date, revision| C[Clem-managed Cora\nCodex runtime]
+    RG -->|one configured ticket only| C
+    C --> P[Hash-bound proposal\nverbatim revision-bound citations]
+    C -->|intake, research, note request| AB[Isolated Civo AgentBus]
+    P --> G[Policy gateway]
     AB --> G
-    G -->|full hash + analyzed-version guard\nprivate note only; no approval| FS
-    G -->|post-note metadata proposal| AB
-    AB --> UI
-    UI -->|read-only proposal projection| A
-    H -->|optional exact approval note\nAPPROVE AI hash-prefix| FS
-    RG -->|ticket + conversations; no API key| A
+    G -->|revalidate citations, artifact hash, ticket version| BS
+    G -->|autonomous private note only| FS
+    AB --> UI[Actual AgentBus UI\nobservability only]
+    H[Human operator] -->|optional native approval note| FS
+    FS --> A[Freshservice approval watcher]
     A -->|authenticated metadata approval| AB
     AB --> G
-    G -->|post-approval version guard\ntags only| FS
+    G -->|approved tags only| FS
 ```
 
-The Freshservice key is stored in `/etc/gaidemo/freshworks.env`, readable by the
-`gaidemo-operator` gateway identity but not by Cora, the cockpit, or the native
-approval watcher. Cora and the watcher can only use the ticket-scoped read
-gateway. The cockpit, watcher, and policy gateway have distinct OS identities,
-state directories, and AgentBus mailbox tokens. The cockpit endpoint returns
-HTTP 410 for approval attempts: it is an observability surface, not a frontline
-operator interface and not AgentBus itself.
+## Knowledge boundary
 
-The worker and gateway share only the validated proposal artifact through the
-`gaidemo-proposals` group. The gateway accepts Cora's `note_publish_request`
-only when the full artifact SHA-256, ticket ID, and analyzed ticket version all
-match. It may then perform exactly one Freshservice action: add the grounded
-private note. The note embeds the proposal hash as an idempotency and audit
-reference. A persisted marker prevents Freshservice's eventually consistent
-parent-ticket version from causing duplicate notes.
+BookStack and MariaDB run as two containers bound to host loopback. The UI is
+opened for recording through an SSH tunnel. Pages contain explicit status,
+owner, classification, review date, and synthetic-data markers.
 
-After the parent version settles, the gateway emits a metadata-only proposal.
-The watcher accepts exactly one new private outgoing note whose text matches the
-current proposal hash prefix and whose Freshservice `user_id` matches the
-configured operator. It rejects concurrent ticket-field changes and additional
-conversations. The gateway rechecks the full proposal SHA-256 and the ticket
-version produced by that approval note, then applies tags only. A permanently
-stale action emits an auditable rejection and is acknowledged instead of
-poisoning the AgentBus delivery queue.
+Cora has no BookStack API credential. A dedicated system service owns a
+restricted BookStack reader token and exposes only three Unix-socket actions:
+search, read one returned citation, and validate a proposal. Citations have the
+form `bookstack://pages/3@revision-1`. Validation fails closed if the live page
+revision differs, or if a quoted sentence is not present verbatim.
 
-This is a live capability demonstration over a synthetic scenario, not a
-production-readiness, reliability, KPI, legal-compliance, or vendor-selection
-result. Clem was selected because the consultant already knows it well;
-alternatives should be evaluated separately against the demonstrated control
-capabilities.
+The policy gateway independently repeats citation validation immediately before
+publishing a Freshservice note. This makes the knowledge result derived and
+rebuildable while BookStack remains the governed source.
+
+## Freshservice action boundary
+
+Cora has no Freshservice credential. It reads only the configured synthetic
+ticket through a Unix-socket gateway. The Freshservice key is readable by the
+policy gateway but not by Cora, the BookStack gateway, or AgentBus UI.
+
+The gateway accepts a note request only when the complete proposal SHA-256,
+ticket ID, analyzed ticket version, BookStack citations, and stored artifact
+all agree. It can then add one idempotent private operator note. It cannot send
+a public reply through this path.
+
+Optional tags are handled separately. A human adds the exact approval note in
+Freshservice; the watcher authenticates that native Freshservice identity, and
+the policy gateway applies tags only after another version guard. Category
+changes, requester-visible replies, access resets, and knowledge publication
+are not implemented autonomous actions.
+
+The previous cockpit is a custom observability prototype. It is not AgentBus,
+Clem, or ZestMem product UI and is intentionally excluded from the main demo
+cut. Only Cora's real terminal, the actual AgentBus UI, BookStack, and native
+Freshservice appear in the principal evidence.

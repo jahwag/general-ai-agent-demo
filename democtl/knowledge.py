@@ -1,10 +1,23 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 
 TOKEN = re.compile(r"[a-z0-9][a-z0-9_-]{2,}")
+
+
+@dataclass(frozen=True)
+class CitationDetails:
+    citation: str
+    content: str
+    title: str
+    source_url: str | None = None
+    version: int | None = None
+    owner: str | None = None
+    updated_at: str | None = None
+    review_date: str | None = None
 
 
 class KnowledgeBase:
@@ -51,7 +64,7 @@ class KnowledgeBase:
         matches.sort(key=lambda item: (-int(item["score"]), str(item["citation"])))
         return matches[:limit]
 
-    def resolve_citation(self, citation: str) -> str:
+    def citation_details(self, citation: str) -> CitationDetails:
         if not citation.startswith("kb://"):
             raise ValueError(f"unsupported citation: {citation}")
         name = citation.removeprefix("kb://")
@@ -60,5 +73,20 @@ class KnowledgeBase:
         path = self.root / name
         if not path.is_file():
             raise ValueError(f"unknown citation: {citation}")
-        return path.read_text(encoding="utf-8")
+        content = path.read_text(encoding="utf-8")
+        title = next(
+            (
+                line.removeprefix("# ").strip()
+                for line in content.splitlines()
+                if line.startswith("# ")
+            ),
+            path.stem,
+        )
+        return CitationDetails(
+            citation=citation,
+            content=content,
+            title=title,
+        )
 
+    def resolve_citation(self, citation: str) -> str:
+        return self.citation_details(citation).content

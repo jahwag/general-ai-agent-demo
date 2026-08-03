@@ -6,11 +6,11 @@
   "private_note": "Verify the employee using the approved process. Then remove the retired authenticator, issue a temporary registration pass, and ask the employee to finish company-portal enrolment. Once the new phone reports Compliant, sync the portal and allow up to fifteen minutes for the employee Wi-Fi profile.",
   "evidence": [
     {
-      "citation": "kb://mfa-recovery.md",
+      "citation": "bookstack://pages/REPLACE_PAGE_ID@revision-REPLACE_REVISION",
       "quote": "Never request a password or a one-time code in a ticket."
     },
     {
-      "citation": "kb://wifi-managed-device.md",
+      "citation": "bookstack://pages/REPLACE_PAGE_ID@revision-REPLACE_REVISION",
       "quote": "The employee Wi-Fi profile is delivered automatically after the mobile device is enrolled and compliant."
     }
   ],
