@@ -69,6 +69,7 @@ class LivePromptTests(unittest.TestCase):
 
         self.assertIn("Cora · approved action", html)
         self.assertIn("Human operator", html)
+        self.assertIn("Safety guard", html)
         self.assertIn("AgentBus principal:", html)
         self.assertNotIn('"Operator gateway"', html)
 
@@ -263,6 +264,67 @@ class LiveCockpitTests(unittest.TestCase):
             ["human-approval-bridge", "cora"],
         )
 
+    @mock.patch("democtl.approval_gateway.subprocess.run")
+    def test_gateway_acknowledges_and_audits_permanent_stale_rejection(
+        self, run: mock.Mock
+    ) -> None:
+        client = FakeClient()
+        run.return_value = mock.Mock(
+            returncode=2,
+            stdout=json.dumps(
+                {
+                    "error": (
+                        "ticket changed after analysis; fetch it again before approval"
+                    )
+                }
+            ),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            proposal_path = Path(directory) / "proposal.json"
+            proposal_path.write_text(
+                json.dumps({"ticket_id": 2}),
+                encoding="utf-8",
+            )
+            state_dir = Path(directory) / "state"
+            state_dir.mkdir()
+            proposal_hash = hashlib.sha256(proposal_path.read_bytes()).hexdigest()
+            message = {
+                "message_id": "msg_native_stale",
+                "from": "freshservice-approval-bridge",
+                "body": f"APPROVE ticket=2 proposal={proposal_hash}",
+                "data": {
+                    "kind": "human_approval",
+                    "phrase": "APPROVE",
+                    "source": "freshservice_private_note",
+                    "ticket_id": 2,
+                    "proposal_hash": proposal_hash,
+                    "operator_user_id": 60000287482,
+                    "approval_conversation_id": 44,
+                    "ticket_updated_at": "stale-version",
+                },
+            }
+
+            accepted = process_message(
+                client,  # type: ignore[arg-type]
+                message,
+                ticket_id=2,
+                trusted_operator_id=60000287482,
+                proposal_path=proposal_path,
+                state_dir=state_dir,
+            )
+
+            self.assertTrue(accepted)
+            self.assertFalse((state_dir / f"2-{proposal_hash}.json").exists())
+            self.assertEqual(
+                [sent["to"] for sent in client.sent],
+                ["cora"],
+            )
+            self.assertEqual(client.sent[0]["data"]["kind"], "apply_rejected")
+            self.assertEqual(
+                client.sent[0]["data"]["reason"],
+                "ticket_version_changed",
+            )
+
 
 class NativeApprovalTests(unittest.TestCase):
     def test_publishes_visible_audit_before_gateway_approval(self) -> None:
@@ -297,6 +359,8 @@ class NativeApprovalTests(unittest.TestCase):
         )
         self.assertEqual(result["message_id"], "msg_approval123")
         self.assertEqual(result["audit_message_id"], "msg_approval123")
+        self.assertTrue(client.sent[0]["client_message_id"].endswith("-44"))
+        self.assertTrue(client.sent[1]["client_message_id"].endswith("-44"))
 
     proposal = {
         "ticket_id": 2,
@@ -378,6 +442,36 @@ class NativeApprovalTests(unittest.TestCase):
                     baseline_path=baseline,
                 )
             self.assertFalse(baseline.exists())
+
+    def test_approval_note_waits_for_freshservice_ticket_version(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            baseline = Path(directory) / "baseline.json"
+            detect_native_approval(
+                self.proposal,
+                self.bundle(),
+                trusted_operator_id=60000287482,
+                baseline_path=baseline,
+            )
+
+            self.assertIsNone(
+                detect_native_approval(
+                    self.proposal,
+                    self.bundle(
+                        updated_at="analyzed-version",
+                        conversations=[
+                            {
+                                "id": 44,
+                                "user_id": 60000287482,
+                                "private": True,
+                                "incoming": False,
+                                "body_text": approval_command("c" * 64),
+                            }
+                        ],
+                    ),
+                    trusted_operator_id=60000287482,
+                    baseline_path=baseline,
+                )
+            )
 
     def test_note_from_wrong_agent_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
