@@ -47,6 +47,10 @@ the current proposal hash prefix and whose Freshservice `user_id` matches the
 configured operator. It rejects concurrent ticket-field changes or additional
 conversations. The write gateway then rechecks the full proposal SHA-256 and
 the ticket version produced by the approval note before mutating Freshservice.
+Freshservice can expose a new conversation before the parent ticket's
+`updated_at` advances, so the watcher waits for that settled post-note version.
+A permanently stale apply is emitted as an auditable `apply_rejected` event and
+acknowledged instead of poisoning the AgentBus delivery queue.
 
 This is a live capability demonstration over a synthetic scenario, not a
 production-readiness, reliability, KPI, or vendor-selection result. Clem was

@@ -127,6 +127,11 @@ def detect_native_approval(
     current_updated_at = ticket.get("updated_at")
     if not isinstance(current_updated_at, str):
         raise NativeApprovalError("ticket updated_at was invalid")
+    if current_updated_at == ticket_updated_at:
+        # Freshservice can expose a newly-created conversation before the parent
+        # ticket's updated_at catches up. Wait for the post-note version so the
+        # write gateway receives the correct optimistic-concurrency guard.
+        return None
     return {
         "ticket_id": ticket_id,
         "proposal_hash": proposal_hash,
@@ -158,11 +163,14 @@ def publish_native_approval(
 ) -> dict[str, str]:
     proposal_hash = approval.get("proposal_hash")
     proposal_message_id = approval.get("proposal_message_id")
+    approval_conversation_id = approval.get("approval_conversation_id")
     if not isinstance(proposal_hash, str):
         raise NativeApprovalError("native approval lacked a proposal hash")
     approval_command(proposal_hash)
     if not isinstance(proposal_message_id, str):
         raise NativeApprovalError("native approval lacked a proposal message ID")
+    if not isinstance(approval_conversation_id, int):
+        raise NativeApprovalError("native approval lacked a conversation ID")
 
     audit = client.send(
         to="human-approval-bridge",
@@ -172,7 +180,7 @@ def publish_native_approval(
         ),
         client_message_id=(
             f"ticket-{ticket_id}-freshservice-approval-audit-"
-            f"{proposal_hash[:12]}"
+            f"{proposal_hash[:12]}-{approval_conversation_id}"
         ),
         data={
             "kind": "approval_verified",
@@ -185,7 +193,8 @@ def publish_native_approval(
         to="approval-gateway",
         body=f"APPROVE ticket={ticket_id} proposal={proposal_hash}",
         client_message_id=(
-            f"ticket-{ticket_id}-freshservice-approval-{proposal_hash[:12]}"
+            f"ticket-{ticket_id}-freshservice-approval-{proposal_hash[:12]}-"
+            f"{approval_conversation_id}"
         ),
         data={
             "kind": "human_approval",

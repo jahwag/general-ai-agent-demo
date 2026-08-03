@@ -30,7 +30,15 @@ After the single approved write, reload the configured ticket and repeat with `a
 filenames. Set `DEMO_TICKET_ID` to the configured numeric ticket ID; the capture
 command refuses any other ticket path.
 This hides the address bar, tenant URL, account menus, extensions, desktop
-notifications, and unrelated tickets by construction. Assemble with:
+notifications, and unrelated tickets by construction. After approval, capture
+the two agent identities and all tags in one native Freshservice frame:
+
+```bash
+node recording/capture-freshservice-tags.mjs \
+  artifacts/live-demo/freshservice-after-tags.png 3
+```
+
+Assemble with:
 
 ```bash
 recording/assemble.sh

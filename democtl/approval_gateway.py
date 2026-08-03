@@ -13,6 +13,7 @@ from .agentbus_client import AgentBusClient, AgentBusConfig, AgentBusError
 
 
 HASH_RE = re.compile(r"^[0-9a-f]{64}$")
+STALE_TICKET_ERROR = "ticket changed after analysis; fetch it again before approval"
 
 
 def send_result(
@@ -48,6 +49,48 @@ def send_result(
             data=data,
             reply_to=approval_message_id,
         )
+
+
+def _permanent_rejection_reason(
+    completed: subprocess.CompletedProcess[str],
+) -> str | None:
+    try:
+        value = json.loads(completed.stdout)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if isinstance(value, dict) and value.get("error") == STALE_TICKET_ERROR:
+        return "ticket_version_changed"
+    return None
+
+
+def send_rejection(
+    client: AgentBusClient,
+    *,
+    ticket_id: int,
+    proposal_hash: str,
+    approval_message_id: str,
+    reason: str,
+) -> None:
+    client.send(
+        to="cora",
+        body=(
+            f"Safety guard refused proposal {proposal_hash[:12]} for Freshservice "
+            f"ticket #{ticket_id} because the ticket version changed. "
+            "No write was applied."
+        ),
+        client_message_id=(
+            f"ticket-{ticket_id}-apply-rejected-{proposal_hash[:12]}-"
+            f"{approval_message_id[-12:]}"
+        ),
+        data={
+            "kind": "apply_rejected",
+            "ticket_id": ticket_id,
+            "proposal_hash": proposal_hash,
+            "applied": False,
+            "reason": reason,
+        },
+        reply_to=approval_message_id,
+    )
 
 
 def process_message(
@@ -104,7 +147,17 @@ def process_message(
             timeout=90,
         )
         if completed.returncode != 0:
-            return False
+            reason = _permanent_rejection_reason(completed)
+            if reason is None:
+                return False
+            send_rejection(
+                client,
+                ticket_id=ticket_id,
+                proposal_hash=proposal_hash,
+                approval_message_id=str(message["message_id"]),
+                reason=reason,
+            )
+            return True
         result = json.loads(completed.stdout)
         temporary = marker.with_suffix(".tmp")
         temporary.write_text(json.dumps(result), encoding="utf-8")

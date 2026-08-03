@@ -37,6 +37,14 @@ a vendor recommendation.
    customer-controlled inference gateway, and evaluate Clem against managed
    alternatives such as AgentCore.
 
+## Ticket #3 guardrail proof
+
+The raw AgentBus view intentionally shows one `apply_rejected` event before the
+successful write. Freshservice exposed the human note before the parent ticket
+version settled; the stale-version guard applied nothing, recorded the refusal,
+and the watcher re-drove the same authenticated note with the settled version.
+This is useful evidence that the model cannot bypass optimistic concurrency.
+
 ## Recording safety
 
 - Record only the synthetic tenant and ticket, with a cropped terminal.
