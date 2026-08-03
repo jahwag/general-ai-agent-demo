@@ -29,6 +29,9 @@ approved, include Cora's note, the human approval note, and all final tags in
 the native frame:
 
 ```bash
+node recording/capture-freshservice-note.mjs \
+  artifacts/live-demo/freshservice-autonomous-note.png TICKET_ID
+
 node recording/capture-freshservice-tags.mjs \
   artifacts/live-demo/freshservice-after-tags.png TICKET_ID
 ```
