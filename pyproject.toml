@@ -5,9 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "general-ai-agent-demo"
 version = "0.1.0"
-description = "Minimal Freshworks human-approval capability demo"
+description = "Minimal Freshworks risk-tiered AI-agent capability demo"
 requires-python = ">=3.11"
 
 [tool.setuptools]
 packages = ["democtl"]
-

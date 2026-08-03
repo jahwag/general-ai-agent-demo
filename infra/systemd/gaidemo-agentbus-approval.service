@@ -1,5 +1,5 @@
 [Unit]
-Description=Human-approved Freshservice write consumer
+Description=Risk-tiered Freshservice action gateway
 After=gaidemo-agentbus.service gaidemo-freshworks-read.service
 Requires=gaidemo-agentbus.service
 

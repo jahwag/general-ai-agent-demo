@@ -36,6 +36,7 @@ class LivePromptTests(unittest.TestCase):
         self.assertNotIn("-intake BODY ", prompt)
         self.assertIn("run-RUN_ID-intake", prompt)
         self.assertIn("I picked up Freshservice ticket TICKET_ID", prompt)
+        self.assertIn("note_publish_request", prompt)
 
     def test_cockpit_approver_and_gateway_have_separate_identities(self) -> None:
         root = Path(__file__).resolve().parents[1]
@@ -67,7 +68,8 @@ class LivePromptTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         html = (root / "democtl/live_cockpit.html").read_text(encoding="utf-8")
 
-        self.assertIn("Cora · approved action", html)
+        self.assertIn("Cora · autonomous note", html)
+        self.assertIn("Cora · approved metadata", html)
         self.assertIn("Human operator", html)
         self.assertIn("Safety guard", html)
         self.assertIn("AgentBus principal:", html)
@@ -124,7 +126,7 @@ class LiveCockpitTests(unittest.TestCase):
             state.add_message(
                 {
                     "message_id": "msg_proposal123",
-                    "from": "cora",
+                    "from": "approval-gateway",
                     "to": "human-approval-bridge",
                     "body": "Proposal ready",
                     "data": {
@@ -209,7 +211,12 @@ class LiveCockpitTests(unittest.TestCase):
         run.return_value = mock.Mock(
             returncode=0,
             stdout=json.dumps(
-                {"ticket_id": 2, "note_id": 77, "tags": ["human-approved"]}
+                {
+                    "applied": True,
+                    "ticket_id": 2,
+                    "approved_changes": ["tags"],
+                    "tags": ["human-approved"],
+                }
             ),
             stderr="",
         )
@@ -274,7 +281,7 @@ class LiveCockpitTests(unittest.TestCase):
             stdout=json.dumps(
                 {
                     "error": (
-                        "ticket changed after analysis; fetch it again before approval"
+                            "ticket changed after analysis; fetch it again before action"
                     )
                 }
             ),
@@ -324,6 +331,129 @@ class LiveCockpitTests(unittest.TestCase):
                 client.sent[0]["data"]["reason"],
                 "ticket_version_changed",
             )
+
+
+    @mock.patch("democtl.approval_gateway.subprocess.run")
+    def test_gateway_publishes_private_note_before_metadata_approval(
+        self, run: mock.Mock
+    ) -> None:
+        client = FakeClient()
+        note_result = {
+            "published": True,
+            "ticket_id": 2,
+            "note_id": 88,
+            "ticket_updated_at_before": "analyzed-version",
+        }
+        run.side_effect = [
+            mock.Mock(returncode=0, stdout=json.dumps(note_result), stderr=""),
+            mock.Mock(
+                returncode=0,
+                stdout=json.dumps(
+                    {"ticket": {"id": 2, "updated_at": "analyzed-version"}}
+                ),
+                stderr="",
+            ),
+            mock.Mock(
+                returncode=0,
+                stdout=json.dumps(
+                    {"ticket": {"id": 2, "updated_at": "post-note-version"}}
+                ),
+                stderr="",
+            ),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            proposal_path = Path(directory) / "proposal.json"
+            proposal_path.write_text(
+                json.dumps(
+                    {
+                        "ticket_id": 2,
+                        "ticket_updated_at": "analyzed-version",
+                        "private_note": "Synthetic guidance",
+                        "category": "Identity and Access",
+                        "tags_to_add": ["ai-assisted", "human-approved"],
+                        "evidence": [
+                            {
+                                "citation": "kb://mfa-recovery.md",
+                                "quote": "Synthetic evidence",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            state_dir = Path(directory) / "state"
+            state_dir.mkdir()
+            proposal_hash = hashlib.sha256(proposal_path.read_bytes()).hexdigest()
+            message = {
+                "message_id": "msg_note_request",
+                "from": "cora",
+                "body": "Publish grounded private guidance",
+                "data": {
+                    "kind": "note_publish_request",
+                    "ticket_id": 2,
+                    "proposal_hash": proposal_hash,
+                    "ticket_updated_at": "analyzed-version",
+                    "category": "Identity and Access",
+                    "citations": ["kb://mfa-recovery.md"],
+                    "tags_to_add": ["ai-assisted", "human-approved"],
+                },
+            }
+
+            first = process_message(
+                client,  # type: ignore[arg-type]
+                message,
+                ticket_id=2,
+                trusted_operator_id=60000287482,
+                proposal_path=proposal_path,
+                state_dir=state_dir,
+            )
+            self.assertFalse(first)
+            self.assertEqual(client.sent, [])
+
+            second = process_message(
+                client,  # type: ignore[arg-type]
+                message,
+                ticket_id=2,
+                trusted_operator_id=60000287482,
+                proposal_path=proposal_path,
+                state_dir=state_dir,
+            )
+            self.assertTrue(second)
+            self.assertTrue(
+                (state_dir / f"note-2-{proposal_hash}.json").exists()
+            )
+
+        self.assertEqual(
+            run.call_args_list[0],
+            mock.call(
+                [
+                    "/usr/local/bin/gaidemo-proposal-apply",
+                    "NOTE",
+                    "analyzed-version",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=90,
+            ),
+        )
+        self.assertEqual(len(run.call_args_list), 3)
+        self.assertEqual(len(client.sent), 1)
+        forwarded = client.sent[0]
+        self.assertEqual(forwarded["to"], "human-approval-bridge")
+        self.assertEqual(forwarded["data"]["kind"], "proposal_ready")
+        self.assertTrue(forwarded["data"]["private_note_published"])
+        self.assertEqual(forwarded["data"]["approval_scope"], ["tags"])
+        self.assertEqual(
+            forwarded["data"]["tags_to_add"],
+            ["ai-assisted", "human-approved"],
+        )
+        self.assertEqual(
+            forwarded["data"]["citations"], ["kb://mfa-recovery.md"]
+        )
+        self.assertEqual(
+            forwarded["data"]["ticket_updated_at"], "post-note-version"
+        )
 
 
 class NativeApprovalTests(unittest.TestCase):

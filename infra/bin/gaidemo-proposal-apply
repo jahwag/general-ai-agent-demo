@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 2 || $1 != "APPROVE" || -z $2 ]]; then
-  echo 'usage: gaidemo-proposal-apply APPROVE EXPECTED_UPDATED_AT' >&2
-  exit 3
+if [[ $# -ne 2 || ( $1 != "NOTE" && $1 != "APPROVE" ) || -z $2 ]]; then
+  echo 'usage: gaidemo-proposal-apply NOTE|APPROVE EXPECTED_UPDATED_AT' >&2
+  exit 2
 fi
 
-set -a
-# shellcheck disable=SC1091
+# shellcheck source=/dev/null
 source /etc/gaidemo/freshworks.env
-set +a
-
 cd /opt/general-ai-agent
-exec /opt/general-ai-agent/.venv/bin/python -I -m democtl \
-  proposal apply /home/gaidemo-copilot/gaidemo/artifacts/proposal.json \
-  --approve "$1" \
-  --expected-updated-at "$2"
+
+proposal=/home/gaidemo-copilot/gaidemo/artifacts/proposal.json
+if [[ $1 == "NOTE" ]]; then
+  exec /opt/general-ai-agent/.venv/bin/python -I -m democtl proposal \
+    publish-note "$proposal" --expected-updated-at "$2"
+fi
+
+exec /opt/general-ai-agent/.venv/bin/python -I -m democtl proposal \
+  apply "$proposal" --approve APPROVE --expected-updated-at "$2"
