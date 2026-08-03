@@ -80,6 +80,16 @@ node recording/capture-live-agentbus.mjs \
   artifacts/live-demo/agentbus-live-late.png
 ```
 
+Record the same native, read-only AgentBus view as a scrolling clip. The
+one-time login happens in a separate unrecorded browser context, so the raw
+video does not contain the short-lived code:
+
+```bash
+node recording/capture-live-agentbus-video.mjs \
+  tmp/ssh/demo_config gaidemo \
+  artifacts/live-demo/agentbus-live.webm 24
+```
+
 Assemble any ordered clips with:
 
 ```bash
