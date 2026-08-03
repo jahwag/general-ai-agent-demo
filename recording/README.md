@@ -1,9 +1,9 @@
 # Recording runbook
 
-The final demo is one continuous, sanitized capture of two live browser tabs,
+The final demo is one continuous, sanitized capture of three live browser views,
 with native before/after evidence retained separately:
 
-1. Freshservice synthetic ticket #2 before approval;
+1. Freshservice configured synthetic ticket before approval;
 2. the observability cockpit backed by the isolated Civo AgentBus;
 3. the human's real private approval note inside Freshservice;
 4. the gateway result in both AgentBus and Freshservice.
@@ -14,23 +14,37 @@ Before recording, create the ignored `tmp/ssh/demo_config` with the Civo host,
 the video does not show a host, IP address, or username.
 
 The dedicated Chrome profile exposes DevTools only on loopback port 9222. Once
-the operator is logged in and ticket #2 is visible, capture the content viewport
+the operator is logged in and the configured ticket is visible, capture the content viewport
 without browser chrome or the desktop:
 
 ```bash
-node recording/chrome-cdp.mjs status
-node recording/chrome-cdp.mjs screenshot artifacts/freshworks-before.png
+node recording/launch-browser.mjs 3
+node recording/prepare-demo-tabs.mjs 3
+DEMO_TICKET_ID=3 node recording/chrome-cdp.mjs status
+DEMO_TICKET_ID=3 node recording/chrome-cdp.mjs screenshot artifacts/freshworks-before.png
 recording/still-to-clip.sh artifacts/freshworks-before.png \
   artifacts/freshworks-before.mp4 15
 ```
 
-After the single approved write, reload ticket #2 and repeat with `after` in the
-filenames. The capture command refuses any page whose path is not ticket #2.
+After the single approved write, reload the configured ticket and repeat with `after` in the
+filenames. Set `DEMO_TICKET_ID` to the configured numeric ticket ID; the capture
+command refuses any other ticket path.
 This hides the address bar, tenant URL, account menus, extensions, desktop
 notifications, and unrelated tickets by construction. Assemble with:
 
 ```bash
 recording/assemble.sh
+```
+
+For the full Cora → cockpit → Freshservice → raw AgentBus sequence, pass any
+number of ordered clips to the flexible assembler:
+
+```bash
+recording/assemble-live-demo.sh artifacts/live-demo/final.mp4 \
+  artifacts/live-demo/freshservice-before.mp4 \
+  artifacts/live-demo/cora-console.webm \
+  artifacts/live-demo/cockpit.webm \
+  artifacts/live-demo/freshservice-after.mp4
 ```
 
 ## Live native-approval flow
@@ -39,6 +53,13 @@ Open `http://127.0.0.1:18765/` through the dedicated SSH tunnel in a second
 Chrome tab. The cockpit reports Cora's intake, scoped reading, knowledge
 evidence, proposal hash, pending human control, authenticated approval, and
 gateway result from live AgentBus deliveries.
+
+Open Cora's real, read-only Clem/Codex terminal on `http://127.0.0.1:17681/`:
+
+```bash
+recording/cora-console-tunnel.sh
+node recording/capture-cora-console.mjs artifacts/cora-console.webm 45
+```
 
 Start screen capture while approval is pending. Show Freshservice, switch to the
 cockpit to explain the work and copy the exact `APPROVE AI <hash-prefix>` value,

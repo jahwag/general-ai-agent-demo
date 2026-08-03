@@ -151,6 +151,56 @@ def _read_ticket(ticket_id: int) -> dict[str, Any]:
     return value
 
 
+def publish_native_approval(
+    client: AgentBusClient,
+    ticket_id: int,
+    approval: dict[str, Any],
+) -> dict[str, str]:
+    proposal_hash = approval.get("proposal_hash")
+    proposal_message_id = approval.get("proposal_message_id")
+    if not isinstance(proposal_hash, str):
+        raise NativeApprovalError("native approval lacked a proposal hash")
+    approval_command(proposal_hash)
+    if not isinstance(proposal_message_id, str):
+        raise NativeApprovalError("native approval lacked a proposal message ID")
+
+    audit = client.send(
+        to="human-approval-bridge",
+        body=(
+            f"Human operator approved proposal {proposal_hash[:12]} "
+            f"inside Freshservice ticket #{ticket_id}."
+        ),
+        client_message_id=(
+            f"ticket-{ticket_id}-freshservice-approval-audit-"
+            f"{proposal_hash[:12]}"
+        ),
+        data={
+            "kind": "approval_verified",
+            "source": "freshservice_private_note",
+            **approval,
+        },
+        reply_to=proposal_message_id,
+    )
+    sent = client.send(
+        to="approval-gateway",
+        body=f"APPROVE ticket={ticket_id} proposal={proposal_hash}",
+        client_message_id=(
+            f"ticket-{ticket_id}-freshservice-approval-{proposal_hash[:12]}"
+        ),
+        data={
+            "kind": "human_approval",
+            "phrase": "APPROVE",
+            "source": "freshservice_private_note",
+            **approval,
+        },
+        reply_to=proposal_message_id,
+    )
+    return {
+        "message_id": sent["message_id"],
+        "audit_message_id": audit["message_id"],
+    }
+
+
 def main() -> None:
     ticket_id = int(os.environ["DEMO_TICKET_ID"])
     trusted_operator_id = int(os.environ["DEMO_OPERATOR_ID"])
@@ -187,20 +237,14 @@ def main() -> None:
             if approval is None:
                 time.sleep(2)
                 continue
-            body = f"APPROVE ticket={ticket_id} proposal={proposal_hash}"
-            sent = client.send(
-                to="approval-gateway",
-                body=body,
-                client_message_id=f"ticket-{ticket_id}-freshservice-approval-{proposal_hash[:12]}",
-                data={
-                    "kind": "human_approval",
-                    "phrase": "APPROVE",
-                    "source": "freshservice_private_note",
+            published = publish_native_approval(client, ticket_id, approval)
+            _write_json(
+                marker,
+                {
                     **approval,
+                    **published,
                 },
-                reply_to=approval["proposal_message_id"],
             )
-            _write_json(marker, {**approval, "message_id": sent["message_id"]})
         except (
             AgentBusError,
             NativeApprovalError,

@@ -15,6 +15,7 @@ from democtl.native_approval import (
     NativeApprovalError,
     approval_command,
     detect_native_approval,
+    publish_native_approval,
 )
 
 
@@ -61,6 +62,15 @@ class LivePromptTests(unittest.TestCase):
         self.assertIn("proposal_group=gaidemo-proposals", installer)
         self.assertIn('chmod 0640 "$proposal_path"', installer)
         self.assertNotIn("AGENTBUS_HUMAN_TOKEN_FILE=/var/lib/gaidemo-operator", installer)
+
+    def test_main_cockpit_collapses_internal_principals_into_product_actors(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        html = (root / "democtl/live_cockpit.html").read_text(encoding="utf-8")
+
+        self.assertIn("Cora · approved action", html)
+        self.assertIn("Human operator", html)
+        self.assertIn("AgentBus principal:", html)
+        self.assertNotIn('"Operator gateway"', html)
 
 
 class LiveCockpitTests(unittest.TestCase):
@@ -135,6 +145,36 @@ class LiveCockpitTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "private note in Freshservice"):
             state.approve({})
         self.assertEqual(client.sent, [])
+
+    def test_only_native_watcher_can_mark_human_approval(self) -> None:
+        client = FakeClient()
+        state = CockpitState(client, 2)  # type: ignore[arg-type]
+        data = {
+            "kind": "approval_verified",
+            "ticket_id": 2,
+            "proposal_hash": "d" * 64,
+        }
+        state.add_message(
+            {
+                "message_id": "msg_untrusted_approval",
+                "from": "cora",
+                "body": "not trusted",
+                "data": data,
+            }
+        )
+        self.assertIsNone(state.snapshot()["approval"])
+
+        state.add_message(
+            {
+                "message_id": "msg_native_approval",
+                "from": "freshservice-approval-bridge",
+                "body": "Human approval verified",
+                "data": data,
+            }
+        )
+        self.assertEqual(
+            state.snapshot()["approval"]["status"], "verified_in_freshservice"
+        )
 
     def test_gateway_ignores_cockpit_sender_without_mutation(self) -> None:
         client = FakeClient()
@@ -225,6 +265,39 @@ class LiveCockpitTests(unittest.TestCase):
 
 
 class NativeApprovalTests(unittest.TestCase):
+    def test_publishes_visible_audit_before_gateway_approval(self) -> None:
+        client = FakeClient()
+        proposal_hash = "e" * 64
+        approval = {
+            "ticket_id": 2,
+            "proposal_hash": proposal_hash,
+            "proposal_message_id": "msg_proposal789",
+            "approval_conversation_id": 44,
+            "operator_user_id": 60000287482,
+            "ticket_updated_at": "approval-version",
+        }
+
+        result = publish_native_approval(  # type: ignore[arg-type]
+            client,
+            2,
+            approval,
+        )
+
+        self.assertEqual(
+            [message["to"] for message in client.sent],
+            ["human-approval-bridge", "approval-gateway"],
+        )
+        self.assertEqual(client.sent[0]["data"]["kind"], "approval_verified")
+        self.assertEqual(client.sent[0]["reply_to"], "msg_proposal789")
+        self.assertEqual(client.sent[1]["data"]["kind"], "human_approval")
+        self.assertEqual(client.sent[1]["data"]["source"], "freshservice_private_note")
+        self.assertEqual(
+            client.sent[1]["body"],
+            f"APPROVE ticket=2 proposal={proposal_hash}",
+        )
+        self.assertEqual(result["message_id"], "msg_approval123")
+        self.assertEqual(result["audit_message_id"], "msg_approval123")
+
     proposal = {
         "ticket_id": 2,
         "proposal_hash": "c" * 64,

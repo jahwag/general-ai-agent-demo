@@ -2,7 +2,7 @@
 
 ```mermaid
 flowchart LR
-  FS[Freshservice\nsynthetic ticket #2]
+    FS[Freshservice\nconfigured synthetic ticket]
   RG[Read-only gateway\nscoped ticket endpoint]
   C[Clem-managed Cora\nCodex runtime]
   KB[Curated Markdown KB]

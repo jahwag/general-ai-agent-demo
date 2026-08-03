@@ -3,6 +3,10 @@
 import { fileURLToPath } from "node:url";
 
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+const demoTicketId = process.argv[2] ?? "2";
+if (!/^[1-9][0-9]*$/.test(demoTicketId)) {
+  throw new Error("usage: launch-browser.mjs [TICKET_ID]");
+}
 process.env.PLAYWRIGHT_BROWSERS_PATH = `${projectRoot}tmp/playwright/browsers`;
 const { chromium } = await import("../tmp/playwright/node_modules/playwright/index.mjs");
 
@@ -26,10 +30,13 @@ const context = await chromium.launchPersistentContext(
 
 const page = context.pages()[0] ?? (await context.newPage());
 try {
-  await page.goto("https://example.freshservice.com/a/tickets/2", {
-    waitUntil: "domcontentloaded",
-    timeout: 30000,
-  });
+  await page.goto(
+    `https://example.freshservice.com/a/tickets/${demoTicketId}`,
+    {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    },
+  );
 } catch (error) {
   process.stderr.write(`initial navigation did not settle: ${error.message}\n`);
 }

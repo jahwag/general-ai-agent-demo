@@ -4,7 +4,10 @@ import { writeFile } from "node:fs/promises";
 
 const endpoint = "http://127.0.0.1:9222";
 const tenantHost = "example.freshservice.com";
-const demoTicketId = "2";
+const demoTicketId = process.env.DEMO_TICKET_ID ?? "2";
+if (!/^[1-9][0-9]*$/.test(demoTicketId)) {
+  throw new Error("DEMO_TICKET_ID must be a positive integer");
+}
 const demoTicketPath = `/tickets/${demoTicketId}`;
 const demoTicketUrl = `https://${tenantHost}/a${demoTicketPath}`;
 
