@@ -3,56 +3,62 @@
 ```mermaid
 flowchart LR
     FS[Freshservice\nconfigured synthetic ticket]
-  RG[Read-only gateway\nscoped ticket endpoint]
-  C[Clem-managed Cora\nCodex runtime]
-  KB[Curated Markdown KB]
-  P[Validated proposal.json\nverbatim citations]
-  AB[Isolated Civo AgentBus\nloopback only]
-  UI[AgentBus observability cockpit\ngaidemo-human identity]
-  A[Native approval watcher\ngaidemo-approver identity]
-  H[Human operator\nFreshservice workspace]
-  W[Write gateway\ngaidemo-operator identity]
+    RG[Read-only gateway\nscoped ticket endpoint]
+    C[Clem-managed Cora\nCodex runtime]
+    KB[Curated Markdown KB]
+    P[Validated proposal.json\nverbatim citations]
+    AB[Isolated Civo AgentBus\nloopback only]
+    G[Policy gateway\ngaidemo-operator identity]
+    UI[AgentBus observability cockpit\ngaidemo-human identity]
+    A[Native approval watcher\ngaidemo-approver identity]
+    H[Human operator\nFreshservice workspace]
 
-  FS -->|official REST API| RG
-  RG -->|ticket #2 only\nUnix socket; no API key| C
-  KB -->|local search| C
-  C --> P
-  C -->|intake, research, proposal| AB
-  AB --> UI
-  UI -->|read-only proposal projection| A
-  H -->|exact private note\nAPPROVE AI hash-prefix| FS
-  RG -->|ticket + conversations\nno API key| A
-  A -->|authenticated, hash-bound approval| AB
-  H -->|reject or omit| X[No proposal write]
-  P --> W
-  AB --> W
-  W -->|full proposal hash + post-approval stale guard\nthen solution note + tags| FS
+    FS -->|official REST API| RG
+    RG -->|ticket only; Unix socket; no API key| C
+    KB -->|local search| C
+    C --> P
+    C -->|intake and research| AB
+    C -->|note_publish_request| AB
+    P --> G
+    AB --> G
+    G -->|full hash + analyzed-version guard\nprivate note only; no approval| FS
+    G -->|post-note metadata proposal| AB
+    AB --> UI
+    UI -->|read-only proposal projection| A
+    H -->|optional exact approval note\nAPPROVE AI hash-prefix| FS
+    RG -->|ticket + conversations; no API key| A
+    A -->|authenticated metadata approval| AB
+    AB --> G
+    G -->|post-approval version guard\ntags only| FS
 ```
 
-The Freshservice key is stored in `/etc/gaidemo/freshworks.env`, readable by
-the `gaidemo-operator` identity but not Cora, the cockpit, or the native
+The Freshservice key is stored in `/etc/gaidemo/freshworks.env`, readable by the
+`gaidemo-operator` gateway identity but not by Cora, the cockpit, or the native
 approval watcher. Cora and the watcher can only use the ticket-scoped read
-gateway. The cockpit, watcher, and write gateway have distinct OS identities,
+gateway. The cockpit, watcher, and policy gateway have distinct OS identities,
 state directories, and AgentBus mailbox tokens. The cockpit endpoint returns
-HTTP 410 for approval attempts; it is an observability surface, not the
-frontline operator interface and not AgentBus itself.
+HTTP 410 for approval attempts: it is an observability surface, not a frontline
+operator interface and not AgentBus itself.
 
-The worker and write gateway share only the validated proposal artifact through
-the `gaidemo-proposals` group. Parent directories are traverse-only for that
-group, the artifacts directory is setgid, and `proposal.json` is mode `0640`;
-the gateway cannot read the worker's other private state.
+The worker and gateway share only the validated proposal artifact through the
+`gaidemo-proposals` group. The gateway accepts Cora's `note_publish_request`
+only when the full artifact SHA-256, ticket ID, and analyzed ticket version all
+match. It may then perform exactly one Freshservice action: add the grounded
+private note. The note embeds the proposal hash as an idempotency and audit
+reference. A persisted marker prevents Freshservice's eventually consistent
+parent-ticket version from causing duplicate notes.
 
-The watcher accepts exactly one new private, outgoing note whose text matches
-the current proposal hash prefix and whose Freshservice `user_id` matches the
-configured operator. It rejects concurrent ticket-field changes or additional
-conversations. The write gateway then rechecks the full proposal SHA-256 and
-the ticket version produced by the approval note before mutating Freshservice.
-Freshservice can expose a new conversation before the parent ticket's
-`updated_at` advances, so the watcher waits for that settled post-note version.
-A permanently stale apply is emitted as an auditable `apply_rejected` event and
-acknowledged instead of poisoning the AgentBus delivery queue.
+After the parent version settles, the gateway emits a metadata-only proposal.
+The watcher accepts exactly one new private outgoing note whose text matches the
+current proposal hash prefix and whose Freshservice `user_id` matches the
+configured operator. It rejects concurrent ticket-field changes and additional
+conversations. The gateway rechecks the full proposal SHA-256 and the ticket
+version produced by that approval note, then applies tags only. A permanently
+stale action emits an auditable rejection and is acknowledged instead of
+poisoning the AgentBus delivery queue.
 
 This is a live capability demonstration over a synthetic scenario, not a
-production-readiness, reliability, KPI, or vendor-selection result. Clem was
-selected because the consultant already knows it well; alternatives should be
-evaluated separately against the demonstrated control-capability bar.
+production-readiness, reliability, KPI, legal-compliance, or vendor-selection
+result. Clem was selected because the consultant already knows it well;
+alternatives should be evaluated separately against the demonstrated control
+capabilities.

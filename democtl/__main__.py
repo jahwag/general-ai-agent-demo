@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
 
 from .freshworks import FreshworksClient, FreshworksConfig
 from .knowledge import KnowledgeBase
-from .proposal import ProposalError, apply_proposal, load_and_validate_proposal
+from .proposal import (
+    ProposalError,
+    apply_proposal,
+    load_and_validate_proposal,
+    publish_private_note,
+)
 from .ticket_fixture import load_synthetic_ticket
 
 
@@ -37,7 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     ticket_seed.add_argument(
         "--confirm",
         metavar="PHRASE",
-        help='must exactly "CREATE SYNTHETIC TICKET"; omission is a dry run',
+        help='must exactly match "CREATE SYNTHETIC TICKET"; omission is dry run',
     )
 
     proposal = commands.add_parser("proposal")
@@ -47,6 +53,14 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("validate", "preview"):
         command = proposal_commands.add_parser(name)
         command.add_argument("path", type=Path)
+
+    proposal_note = proposal_commands.add_parser("publish-note")
+    proposal_note.add_argument("path", type=Path)
+    proposal_note.add_argument(
+        "--expected-updated-at",
+        help="optimistic-concurrency version captured during analysis",
+    )
+
     proposal_apply = proposal_commands.add_parser("apply")
     proposal_apply.add_argument("path", type=Path)
     proposal_apply.add_argument(
@@ -56,19 +70,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     proposal_apply.add_argument(
         "--expected-updated-at",
-        help="trusted post-approval-note ticket version used by the native gateway",
+        help="post-approval-note ticket version checked by the write gateway",
     )
     return parser
 
 
 def print_json(value: object) -> None:
-    print(json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True))
+    print(json.dumps(value, indent=2, sort_keys=True))
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def main() -> int:
+    args = build_parser().parse_args()
     knowledge = KnowledgeBase(args.kb_dir)
-
     try:
         if args.command == "kb":
             print_json(knowledge.search(args.query, limit=args.limit))
@@ -89,10 +102,9 @@ def main(argv: list[str] | None = None) -> int:
             if args.confirm != "CREATE SYNTHETIC TICKET":
                 print_json(
                     {
-                        "action": "not_applied",
+                        "action": "dry-run",
                         "reason": (
-                            "explicit operator phrase --confirm "
-                            '"CREATE SYNTHETIC TICKET" required'
+                            'explicit --confirm "CREATE SYNTHETIC TICKET" required'
                         ),
                         "ticket": ticket,
                     }
@@ -116,6 +128,17 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.proposal_command == "preview":
             print_json({"mode": "preview", "proposal": proposal})
+            return 0
+        if args.proposal_command == "publish-note":
+            client = FreshworksClient(FreshworksConfig.from_environment())
+            print_json(
+                publish_private_note(
+                    client,
+                    proposal,
+                    proposal_hash=hashlib.sha256(args.path.read_bytes()).hexdigest(),
+                    expected_updated_at=args.expected_updated_at,
+                )
+            )
             return 0
         if args.approve != "APPROVE":
             print_json(

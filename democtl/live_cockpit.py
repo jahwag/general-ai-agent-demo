@@ -64,7 +64,7 @@ class CockpitState:
                     "status": "verified_in_freshservice",
                 }
             if (
-                message.get("from") == "cora"
+                message.get("from") == "approval-gateway"
                 and data.get("kind") == "proposal_ready"
                 and data.get("ticket_id") == self.ticket_id
                 and isinstance(data.get("proposal_hash"), str)
@@ -79,6 +79,9 @@ class CockpitState:
                     "category": data.get("category"),
                     "citations": data.get("citations", []),
                     "ticket_updated_at": data["ticket_updated_at"],
+                    "note_id": data.get("note_id"),
+                    "private_note_published": data.get("private_note_published") is True,
+                    "approval_scope": data.get("approval_scope", []),
                     "approval_command": f"APPROVE AI {data['proposal_hash'][:12]}",
                 }
                 if self.proposal_state_path is not None:

@@ -25,6 +25,12 @@ if ! jq -e 'type == "object" and (.kind | type == "string") and (.ticket_id | ty
   exit 2
 fi
 
+kind=$(jq -r '.kind' <<<"$data")
+recipient=human-approval-bridge
+if [[ $kind == "note_publish_request" ]]; then
+  recipient=approval-gateway
+fi
+
 reply_args=()
 if [[ -n $reply_to ]]; then
   if [[ ! $reply_to =~ ^msg_[a-z0-9]+$ ]]; then
@@ -37,7 +43,7 @@ fi
 exec /usr/local/bin/agentbus send \
   --server http://127.0.0.1:7777 \
   --token-file /home/gaidemo-copilot/.config/agentbus/token \
-  --to human-approval-bridge \
+  --to "$recipient" \
   --client-message-id "$client_id" \
   --body "$body" \
   --data "$data" \

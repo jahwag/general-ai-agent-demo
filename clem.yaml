@@ -1,17 +1,14 @@
 project: gaidemo
-primary_milestone: "Record one honest Freshworks human-approval capability demo"
-
+primary_milestone: "Record one honest Freshworks risk-tiered autonomy demo"
 coordination:
   backend: github
   github_repo: "jahwag/general-ai-agent-demo"
-  channels:
-    tasks: "clem:todo"
-    alerts: "1"
-    lessons: "2"
-
+channels:
+  tasks: "clem:todo"
+  alerts: "1"
+  lessons: "2"
 operator:
   github_logins: ["jahwag"]
-
 agents:
   copilot:
     name: "Cora"
@@ -24,5 +21,6 @@ agents:
     web_terminal_port: 7681
     prompt: >-
       Act as {{agent.name}} per AGENTS.md. Claim one synthetic demo task,
-      create and validate the proposal, then stop for explicit operator
-      approval. Run kill $PPID when no task is available.
+      create and validate a proposal, request autonomous publication of its
+      private note, then stop for explicit metadata approval. Run `kill $PPID`
+      when no task is available.
