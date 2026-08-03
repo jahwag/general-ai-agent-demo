@@ -25,6 +25,12 @@ def load_and_validate_proposal(
         value = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ProposalError(f"proposal is not valid JSON: {exc}") from exc
+    return validate_proposal(value, knowledge)
+
+
+def validate_proposal(
+    value: object, knowledge: KnowledgeBase
+) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ProposalError("proposal must be a JSON object")
 
@@ -51,22 +57,49 @@ def load_and_validate_proposal(
         quote = item.get("quote")
         if not isinstance(citation, str) or not isinstance(quote, str) or not quote:
             raise ProposalError(f"evidence[{index}] requires citation and quote")
-        article = knowledge.resolve_citation(citation)
+        details = knowledge.citation_details(citation)
+        article = details.content
         if " ".join(quote.split()).casefold() not in " ".join(
             article.split()
         ).casefold():
             raise ProposalError(
                 f"evidence[{index}] quote does not occur in {citation}"
             )
+        item["_source"] = {
+            "title": details.title,
+            "url": details.source_url,
+            "version": details.version,
+            "owner": details.owner,
+            "updated_at": details.updated_at,
+            "review_date": details.review_date,
+        }
     return value
 
 
 def _note_html(proposal: dict[str, Any], proposal_hash: str) -> str:
-    evidence = "".join(
-        f"<li><code>{html.escape(item['citation'])}</code>: "
-        f"{html.escape(item['quote'])}</li>"
-        for item in proposal["evidence"]
-    )
+    evidence_items: list[str] = []
+    for item in proposal["evidence"]:
+        citation = html.escape(item["citation"])
+        source = item.get("_source")
+        source_label = citation
+        if isinstance(source, dict):
+            title = source.get("title")
+            version = source.get("version")
+            if isinstance(title, str) and title:
+                source_label = html.escape(title)
+                if isinstance(version, int):
+                    source_label += f" (revision {version})"
+            source_url = source.get("url")
+            if isinstance(source_url, str) and source_url:
+                source_label = (
+                    f'<a href="{html.escape(source_url, quote=True)}">'
+                    f"{source_label}</a>"
+                )
+        evidence_items.append(
+            f"<li>{source_label} <small><code>{citation}</code></small>: "
+            f"{html.escape(item['quote'])}</li>"
+        )
+    evidence = "".join(evidence_items)
     return (
         "<p><strong>AI-generated private guidance for operator review. "
         "No ticket fields were changed.</strong></p>"

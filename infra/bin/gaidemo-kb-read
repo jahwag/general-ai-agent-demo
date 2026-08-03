@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || -z $1 ]]; then
+  echo 'usage: gaidemo-kb-read CITATION' >&2
+  exit 2
+fi
+
+exec /usr/bin/curl \
+  --fail \
+  --silent \
+  --show-error \
+  --get \
+  --unix-socket /run/gaidemo-kb/bookstack-read.sock \
+  --data-urlencode "ref=$1" \
+  http://localhost/api/demo/kb/citation

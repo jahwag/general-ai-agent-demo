@@ -1,0 +1,33 @@
+{
+  "book": {
+    "name": "IT Service Desk — Approved Runbooks",
+    "description": "Approved, synthetic service-desk knowledge used by the Cora capability demonstration.",
+    "tags": [
+      {"name": "Status", "value": "Approved"},
+      {"name": "Synthetic demo", "value": "Yes"}
+    ]
+  },
+  "governance": {
+    "owner": "IT Service Desk Knowledge Management",
+    "review_due": "2026-11-03",
+    "status": "Approved",
+    "classification": "Internal"
+  },
+  "articles": [
+    {
+      "source": "device-reenrollment.md",
+      "title": "Re-enrol a replacement mobile device",
+      "category": "Managed devices"
+    },
+    {
+      "source": "mfa-recovery.md",
+      "title": "Recover MFA after a phone replacement",
+      "category": "Identity and access"
+    },
+    {
+      "source": "wifi-managed-device.md",
+      "title": "Employee Wi-Fi on managed mobile devices",
+      "category": "Connectivity"
+    }
+  ]
+}

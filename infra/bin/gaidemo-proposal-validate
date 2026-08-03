@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || ! -s $1 ]]; then
+  echo 'usage: gaidemo-proposal-validate PROPOSAL.json' >&2
+  exit 2
+fi
+
+exec /usr/bin/curl \
+  --fail-with-body \
+  --silent \
+  --show-error \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --unix-socket /run/gaidemo-kb/bookstack-read.sock \
+  --data-binary "@$1" \
+  http://localhost/api/demo/kb/validate-proposal

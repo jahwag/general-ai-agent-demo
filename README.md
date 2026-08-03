@@ -1,50 +1,55 @@
 # General AI agent capability demo
 
-Minimal, synthetic Freshservice capability demo for an internal product-owner
-audience. The implemented path deliberately demonstrates risk-tiered autonomy:
+Minimal, synthetic capability demo for an internal product-owner audience. It
+shows a Clem-managed Codex worker, Cora, grounding service-desk assistance in a
+real BookStack knowledge source and publishing a private Freshservice note
+through an isolated AgentBus workflow.
 
-1. a Clem-managed Codex worker reads one scoped Freshservice ticket;
-2. it searches a curated Markdown knowledge base;
-3. it publishes live intake and research events to an isolated AgentBus and
-   writes a hash-bound structured proposal;
-4. the policy gateway validates the artifact and ticket version, then publishes
-   one grounded **private** note automatically;
-5. the cockpit shows that real AgentBus trace but cannot approve anything;
-6. a human may approve only the remaining ticket-metadata changes by adding the
-   exact approval note inside Freshservice;
-7. a separately identified watcher authenticates the note and the same gateway
-   applies only the approved tags.
+The implemented path demonstrates:
 
-The private note is internal assistance, not a requester-visible reply. Public
-replies and consequential ticket fields remain outside Cora's autonomous
-permission. This is a capability demonstration, not production-readiness,
-reliability, KPI, or EU AI Act conformity validation.
+1. A knowledge owner publishes governed synthetic runbooks in BookStack.
+2. Cora reads one scoped Freshservice ticket through a credential-isolating
+   gateway.
+3. Cora searches BookStack through a separate read-only gateway and receives
+   page owner, review date, stable URL, and revision-bound citations.
+4. A validator checks every proposed quotation against the current BookStack
+   page revision.
+5. Cora emits its intake, research, and action request on the real isolated
+   Civo AgentBus.
+6. The policy gateway revalidates the hash-bound artifact and ticket version,
+   then publishes one grounded **private** Freshservice note autonomously.
+7. Only optional metadata tags remain approval-gated inside Freshservice.
 
-See `docs/demo-script.md` for the claims the recording may make and
-`docs/architecture.md` for component trust boundaries.
+BookStack is the governed authoring and source-of-truth system in this demo. It
+is not presented as a vector database or a complete RAG platform. The
+knowledge connector is replaceable, so Confluence can occupy the same boundary
+in a customer deployment.
 
-## Local commands
+The current implementation does not let Cora publish knowledge changes.
+Agent-proposed BookStack drafts with human publication are a deliberate next
+increment. Public Freshservice replies and consequential ticket-field changes
+also remain outside Cora's autonomous permission.
+
+This is capability evidence, not a production-readiness, reliability, KPI,
+vendor-selection, or EU AI Act conformity assessment.
+
+## Local verification
 
 ```bash
 python3 -m unittest discover -s tests
 python3 -m democtl kb search "new phone wifi mfa"
 python3 -m democtl ticket auth-check
-python3 -m democtl ticket seed fixtures/tickets/replacement-phone.json
-python3 -m democtl ticket seed fixtures/tickets/replacement-phone.json \
-  --confirm "CREATE SYNTHETIC TICKET"
-python3 -m democtl ticket show 123
-python3 -m democtl proposal validate artifacts/proposal.json
-python3 -m democtl proposal preview artifacts/proposal.json
-python3 -m democtl proposal publish-note artifacts/proposal.json
-python3 -m democtl proposal apply artifacts/proposal.json --approve APPROVE
 ```
 
-The last two commands are administrator diagnostics. In the live demo Cora has
-no Freshservice credential: it sends a `note_publish_request` to the policy
-gateway. The gateway publishes the validated private note, then waits for an
-operator to add `APPROVE AI <proposal-hash-prefix>` in Freshservice before it
-applies metadata tags.
+The Markdown command remains as a local fallback for tests. On the demo host,
+Cora instead uses:
 
-Freshservice credentials are read from the environment. Copy the ignored
-`.env.example` to `.env`, set the tenant URL and demo-agent API key, and use only
-synthetic data.
+```bash
+gaidemo-kb-search "replacement phone wifi mfa"
+gaidemo-kb-read bookstack://pages/PAGE_ID@revision-REVISION
+gaidemo-proposal-validate artifacts/proposal.json
+```
+
+Freshservice and BookStack credentials are held by their respective gateways;
+Cora receives neither. All demo data must remain synthetic. See
+`docs/architecture.md`, `docs/demo-script.md`, and `recording/README.md`.

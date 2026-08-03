@@ -9,7 +9,8 @@ For the recorded scenario, output:
 - a three-bullet thread summary;
 - one proposed category;
 - one private-note draft;
-- at least two verbatim evidence quotes with `kb://` citations;
+- at least two verbatim evidence quotes with revision-bound `bookstack://`
+  citations returned by the live knowledge gateway;
 - the unchanged Freshworks `updated_at` value;
 - tags `ai-assisted` and `human-approved` only.
 

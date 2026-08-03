@@ -1,5 +1,22 @@
 # Recording runbook
 
+The principal cut now uses four honest surfaces in this order: governed
+BookStack source, Cora's real terminal, actual AgentBus UI, and native
+Freshservice output. The custom cockpit is excluded.
+
+Start the loopback-matched BookStack tunnel and capture both the article list
+and a governed source page:
+
+```bash
+recording/bookstack-tunnel.sh
+node recording/capture-bookstack.mjs \
+  artifacts/live-demo/bookstack-runbooks.png \
+  artifacts/live-demo/bookstack-source-page.png PAGE_ID
+```
+
+`tmp/bookstack/admin-password` is an ignored, mode-0600 recording credential.
+Never print or commit it.
+
 The final demo is one continuous, sanitized capture of three live browser
 views, with native before/after evidence retained separately:
 

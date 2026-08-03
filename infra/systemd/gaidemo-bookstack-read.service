@@ -1,0 +1,29 @@
+[Unit]
+Description=General AI demo read-only BookStack gateway
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=gaidemo-knowledge
+Group=gaidemo-readers
+EnvironmentFile=/etc/gaidemo-knowledge/bookstack.env
+ExecStart=/opt/general-ai-agent/.venv/bin/python -I -m democtl.kb_gateway --socket /run/gaidemo-kb/bookstack-read.sock
+RuntimeDirectory=gaidemo-kb
+RuntimeDirectoryMode=0750
+UMask=0007
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
