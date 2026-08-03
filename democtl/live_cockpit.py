@@ -50,7 +50,22 @@ class CockpitState:
             self.events.append(event)
             self.events = self.events[-100:]
             if (
-                data.get("kind") == "proposal_ready"
+                message.get("from") == "freshservice-approval-bridge"
+                and data.get("kind") == "approval_verified"
+                and data.get("ticket_id") == self.ticket_id
+                and isinstance(data.get("proposal_hash"), str)
+                and HASH_RE.fullmatch(data["proposal_hash"])
+                and isinstance(message.get("message_id"), str)
+            ):
+                self.approval = {
+                    "message_id": message["message_id"],
+                    "ticket_id": self.ticket_id,
+                    "proposal_hash": data["proposal_hash"],
+                    "status": "verified_in_freshservice",
+                }
+            if (
+                message.get("from") == "cora"
+                and data.get("kind") == "proposal_ready"
                 and data.get("ticket_id") == self.ticket_id
                 and isinstance(data.get("proposal_hash"), str)
                 and HASH_RE.fullmatch(data["proposal_hash"])
