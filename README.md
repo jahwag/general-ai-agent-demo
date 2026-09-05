@@ -5,6 +5,12 @@ shows a Clem-managed Codex worker, Cora, grounding service-desk assistance in a
 real BookStack knowledge source and publishing a private Freshservice note
 through an isolated AgentBus workflow.
 
+![Cora reads approved BookStack guidance, researches the ticket, requests an action through AgentBus, and publishes a grounded private Freshservice note.](docs/media/cora-workflow.gif)
+
+*Selected excerpts from a real run using synthetic ticket data. The first three
+segments are accelerated; the final private note is shown at normal speed.
+Ticket metadata remains subject to human approval.*
+
 The implemented path demonstrates:
 
 1. A knowledge owner publishes governed synthetic runbooks in BookStack.
