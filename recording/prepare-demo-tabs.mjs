@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { ticketUrl, isTicketUrl } from "./config.mjs";
+
 const endpoint = "http://127.0.0.1:9222";
 const ticketId = process.argv[2] ?? "2";
 if (!/^[1-9][0-9]*$/.test(ticketId)) {
@@ -9,8 +11,8 @@ if (!/^[1-9][0-9]*$/.test(ticketId)) {
 const tabs = [
   {
     label: "Freshservice",
-    url: `https://example.freshservice.com/a/tickets/${ticketId}`,
-    matches: (url) => url === `/a/tickets/${ticketId}`,
+    url: ticketUrl(ticketId),
+    matches: (url) => isTicketUrl(url, ticketId),
   },
   {
     label: "Cora console",
@@ -34,8 +36,7 @@ let current = await targets();
 for (const tab of tabs) {
   const existing = current.find((target) => {
     try {
-      const parsed = new URL(target.url);
-      return tab.matches(parsed.hostname.includes("freshservice.com") ? parsed.pathname : target.url);
+      return tab.matches(target.url);
     } catch {
       return false;
     }
@@ -50,17 +51,7 @@ for (const tab of tabs) {
   }
 }
 
-const freshservice = current.find((target) => {
-  try {
-    const parsed = new URL(target.url);
-    return (
-      parsed.hostname === "example.freshservice.com" &&
-      parsed.pathname === `/a/tickets/${ticketId}`
-    );
-  } catch {
-    return false;
-  }
-});
+const freshservice = current.find((target) => isTicketUrl(target.url, ticketId));
 if (!freshservice) throw new Error("Freshservice demo tab was not available");
 
 const activated = await fetch(`${endpoint}/json/activate/${freshservice.id}`);

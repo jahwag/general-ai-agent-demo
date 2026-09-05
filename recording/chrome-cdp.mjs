@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 
 import { writeFile } from "node:fs/promises";
+import { freshserviceOrigin, ticketUrl, isTicketUrl } from "./config.mjs";
 
 const endpoint = "http://127.0.0.1:9222";
-const tenantHost = "example.freshservice.com";
+const tenantOrigin = freshserviceOrigin();
 const demoTicketId = process.env.DEMO_TICKET_ID ?? "2";
 if (!/^[1-9][0-9]*$/.test(demoTicketId)) {
   throw new Error("DEMO_TICKET_ID must be a positive integer");
 }
-const demoTicketPath = `/tickets/${demoTicketId}`;
-const demoTicketUrl = `https://${tenantHost}/a${demoTicketPath}`;
+const demoTicketUrl = ticketUrl(demoTicketId);
 
 async function findDemoPage() {
   const targets = await fetch(`${endpoint}/json/list`).then((response) => response.json());
   const target = targets.find((item) => {
     try {
-      return item.type === "page" && new URL(item.url).hostname === tenantHost;
+      return item.type === "page" && new URL(item.url).origin === tenantOrigin;
     } catch {
       return false;
     }
@@ -69,7 +69,7 @@ async function connect(target) {
 
 async function pageState(call) {
   const result = await call("Runtime.evaluate", {
-    expression: "JSON.stringify({title: document.title, pathname: location.pathname})",
+    expression: "JSON.stringify({title: document.title, pathname: location.pathname, url: location.href})",
     returnByValue: true,
   });
   return JSON.parse(result.result.value);
@@ -101,7 +101,7 @@ async function main() {
 
     if (command === "reload") {
       const initialState = await pageState(call);
-      if (initialState.pathname.includes(demoTicketPath)) {
+      if (isTicketUrl(initialState.url, demoTicketId)) {
         await call("Page.reload", { ignoreCache: true });
       } else {
         try {
@@ -119,7 +119,7 @@ async function main() {
 
     const state = await pageState(call);
     if (command === "screenshot" || command === "screenshot-solution") {
-      if (!state.pathname.includes(demoTicketPath)) {
+      if (!isTicketUrl(state.url, demoTicketId)) {
         throw new Error(`refusing capture outside ticket #${demoTicketId}: ${state.pathname}`);
       }
       await call("Runtime.evaluate", {
@@ -144,7 +144,7 @@ async function main() {
       });
       await writeFile(output, Buffer.from(result.data, "base64"), { mode: 0o600 });
     }
-    process.stdout.write(`${JSON.stringify(state)}\n`);
+    process.stdout.write(`${JSON.stringify({ title: state.title, pathname: state.pathname })}\n`);
   } finally {
     socket.close();
   }

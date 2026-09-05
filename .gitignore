@@ -6,3 +6,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .codex-oauth-*
+
+# Local deployment and recording dependencies
+secrets.sops.yaml
+.sops.yaml
+node_modules/
+.venv/
+build/
+*.egg-info/

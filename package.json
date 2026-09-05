@@ -1,0 +1,15 @@
+{
+  "name": "general-ai-agent-demo-recording",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test recording/config.test.mjs",
+    "recording:install": "PLAYWRIGHT_BROWSERS_PATH=tmp/playwright/browsers playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

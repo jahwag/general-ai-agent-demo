@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 
 import { fileURLToPath } from "node:url";
+import { ticketUrl } from "./config.mjs";
 
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const demoTicketId = process.argv[2] ?? "2";
 if (!/^[1-9][0-9]*$/.test(demoTicketId)) {
   throw new Error("usage: launch-browser.mjs [TICKET_ID]");
 }
+ticketUrl(demoTicketId); // Validate configuration before launching a browser.
 process.env.PLAYWRIGHT_BROWSERS_PATH = `${projectRoot}tmp/playwright/browsers`;
-const { chromium } = await import("../tmp/playwright/node_modules/playwright/index.mjs");
+const { chromium } = await import("playwright");
 
 const context = await chromium.launchPersistentContext(
   `${projectRoot}tmp/playwright-profile`,
@@ -31,7 +33,7 @@ const context = await chromium.launchPersistentContext(
 const page = context.pages()[0] ?? (await context.newPage());
 try {
   await page.goto(
-    `https://example.freshservice.com/a/tickets/${demoTicketId}`,
+    ticketUrl(demoTicketId),
     {
       waitUntil: "domcontentloaded",
       timeout: 30000,

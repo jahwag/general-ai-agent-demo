@@ -1,0 +1,4 @@
+# Copy to .sops.yaml and replace the placeholder with your own public age recipient.
+creation_rules:
+  - path_regex: secrets\.sops\.yaml
+    age: REPLACE_WITH_YOUR_AGE_PUBLIC_RECIPIENT

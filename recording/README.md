@@ -4,6 +4,12 @@ The principal cut now uses four honest surfaces in this order: governed
 BookStack source, Cora's real terminal, actual AgentBus UI, and native
 Freshservice output. The custom cockpit is excluded.
 
+From the repository root, install the pinned browser tooling with `npm ci` and
+`npm run recording:install`. Set `FRESHWORKS_BASE_URL` to your synthetic tenant's
+HTTPS origin (for example, `https://example.freshservice.com`) before using the
+Freshservice launch, preparation, or capture scripts. Credentials remain in your
+local environment and dedicated browser profile; never commit the profile.
+
 Start the loopback-matched BookStack tunnel and capture both the article list
 and a governed source page:
 

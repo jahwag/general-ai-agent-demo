@@ -1,6 +1,6 @@
 # General AI agent capability demo
 
-Minimal, synthetic capability demo for an internal product-owner audience. It
+A synthetic capability demo for product owners and developers. It
 shows a Clem-managed Codex worker, Cora, grounding service-desk assistance in a
 real BookStack knowledge source and publishing a private Freshservice note
 through an isolated AgentBus workflow.
@@ -59,3 +59,52 @@ gaidemo-proposal-validate artifacts/proposal.json
 Freshservice and BookStack credentials are held by their respective gateways;
 Cora receives neither. All demo data must remain synthetic. See
 `docs/architecture.md`, `docs/demo-script.md`, and `recording/README.md`.
+
+## Setup
+
+For local tests, use Python 3.11+ and Node.js 22+:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -e .
+npm ci
+.venv/bin/python -m unittest discover -s tests
+npm test
+```
+
+The live workflow additionally needs a Linux host with systemd, Docker Compose,
+the Clem CLI, AgentBus binaries, and a Freshservice demo tenant. The installers
+under `infra/` expect these prerequisites; they are not a one-command cloud
+provisioner. BookStack and MariaDB are installed by the included Compose setup.
+Keep live data and credentials out of this repository.
+
+Copy `.env.example` to the ignored `.env` and configure your synthetic tenant
+with `FRESHWORKS_BASE_URL=https://YOUR-TENANT.freshservice.com`. The recording
+scripts require this variable and only capture the specified tenant and ticket.
+Before provisioning a fork, update `coordination.github_repo` and
+`operator.github_logins` in `clem.yaml` to your trusted repository and operator.
+
+For Clem's GitHub credential, copy `secrets.example.yaml` to the ignored
+`secrets.sops.yaml`, replace the placeholder with your own scoped token, and
+copy `.sops.example.yaml` to `.sops.yaml` with your own **public** age recipient.
+Encrypt `secrets.sops.yaml` with SOPS before deploying it. Keep the private age
+identity outside the repository. The examples contain no usable credentials.
+
+Browser recording also requires an authenticated synthetic Freshservice session
+and SSH tunnels described in [the recording runbook](recording/README.md):
+
+```bash
+npm run recording:install
+set -a
+. ./.env
+set +a
+node recording/launch-browser.mjs TICKET_ID
+```
+
+FFmpeg with `drawtext` and Gifsicle are needed only to regenerate the README GIF.
+
+## License
+
+This demo's code and documentation are licensed under the [MIT License](LICENSE).
+Clem, AgentBus, Playwright, BookStack, MariaDB, and the other external tools retain
+their own licenses. Freshservice is a separately licensed service.

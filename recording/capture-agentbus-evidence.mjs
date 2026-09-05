@@ -20,7 +20,7 @@ const session = JSON.parse(
 );
 
 process.env.PLAYWRIGHT_BROWSERS_PATH = `${projectRoot}tmp/playwright/browsers`;
-const { chromium } = await import("../tmp/playwright/node_modules/playwright/index.mjs");
+const { chromium } = await import("playwright");
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 

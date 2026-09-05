@@ -25,7 +25,7 @@ if (password.length < 12) {
 
 process.env.PLAYWRIGHT_BROWSERS_PATH = `${projectRoot}tmp/playwright/browsers`;
 const { chromium } = await import(
-  "../tmp/playwright/node_modules/playwright/index.mjs"
+  "playwright"
 );
 const browser = await chromium.connectOverCDP("http://127.0.0.1:9222");
 const context = browser.contexts()[0];

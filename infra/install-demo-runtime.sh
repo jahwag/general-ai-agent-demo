@@ -35,7 +35,7 @@ install -d -m 0755 -o root -g root "$app_root"
 python3 -m venv "$app_root/.venv"
 "$app_root/.venv/bin/pip" install \
   --disable-pip-version-check \
-  "setuptools>=68"
+  "setuptools>=77"
 "$app_root/.venv/bin/pip" install \
   --disable-pip-version-check \
   --no-build-isolation \
