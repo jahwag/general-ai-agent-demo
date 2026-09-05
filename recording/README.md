@@ -110,3 +110,22 @@ recording/assemble-live-demo.sh artifacts/live-demo/final.mp4 \
 - Do not automate the optional human metadata approval.
 - Do not present the older cockpit-click prototype or replayed AgentBus events
   as a live run.
+
+## README preview
+
+`docs/media/cora-workflow.gif` is a 20-second, 800-pixel-wide edit of the
+167-second `cora-bookstack-agentbus-freshservice-ticket-5-demo.mp4` recording.
+It uses BookStack (6–12 s, 1.5×), Cora (38–44 s, 2×), AgentBus (134–146 s, 2×),
+and Freshservice (151–158 s, 1×). The Freshservice view is cropped to the note,
+excluding the account controls and requester sidebar. Captions identify the
+four surfaces; no events or messages are fabricated.
+
+To reproduce it from the repository root with FFmpeg (including `drawtext`)
+and Gifsicle:
+
+```bash
+recording/make-readme-gif.sh /path/to/cora-bookstack-agentbus-freshservice-ticket-5-demo.mp4
+```
+
+The raw recording stays outside Git. Review the full generated preview whenever
+the source or cut points change, and confirm all visible data is synthetic.
